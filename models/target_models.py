@@ -198,7 +198,7 @@ if __name__ == '__main__':
 	parser.add_argument('--dataset', help='dataset to be used', type=str, required=True)
 	parser.add_argument('--gene_list', help='list of genes in dataset (same order as dataset)', \
 		type=str, required=True)
-	parser.add_argument('--sample_json', help='json file containing number of samples per class', \
+	parser.add_argument('--class_counts', help='json file containing number of samples per class', \
 		type=str, required=True)
 	parser.add_argument('--subset_list', help='gmt/gct file containing subsets', type=str, required=False)
 	parser.add_argument('--set', help='specific subset to run', type=str, required=False)
@@ -209,7 +209,7 @@ if __name__ == '__main__':
 	print('loading genetic data...')
 	gtex_gct_flt = np.load(args.dataset)
 	total_gene_list = np.load(args.gene_list)
-	data = load_data(args.sample_json, gtex_gct_flt)
+	data = load_data(args.class_counts, gtex_gct_flt)
 
 	# if subset is passed, filter out the genes that are not in the total gene list
 	# and redefine the subsets with valid genes
@@ -248,7 +248,7 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	mlp = Target_B(n_input=dataset.train.data.shape[1], n_classes=len(data), batch_size=128, epochs=30)
+	mlp = Target_A(n_input=dataset.train.data.shape[1], n_classes=len(data), batch_size=128, epochs=30)
 	mlp.train(dataset)
 	mlp.inference(dataset)
 

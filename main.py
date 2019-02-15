@@ -6,13 +6,9 @@
 
 
 import tensorflow as tf
-from keras.datasets import mnist
-from keras.utils import to_categorical
+from sklearn import preprocessing
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import os, sys
-import random
+import os, sys, argparse
 
 sys.path.append(os.path.dirname(os.getcwd()))
 sys.path.append(os.getcwd())
@@ -24,19 +20,11 @@ sys.path.append(os.path.join(BASE_DIR, '../'))
 from models.generator import generator
 from models.discriminator import discriminator
 from models.target_models import Target_A as target_model
+from utils.dataset import DataContainer as DC
+from utils.utils import load_data, read_subset_file
 
-# randomly shuffle a dataset 
-def shuffle(X, Y):
-	rands = random.sample(range(X.shape[0]),X.shape[0])
-	return X[rands], Y[rands]
 
-# get the next batch based on x, y, and the iteration (based on batch_size)
-def next_batch(X, Y, i, batch_size):
-	idx = i * batch_size
-	idx_n = i * batch_size + batch_size
-	return X[idx:idx_n], Y[idx:idx_n]
-
-# loss function to encourage misclassification after perturbation
+# loss function to encourage misclassification after perturbation from carlini&wagner
 def adv_loss(preds, labels, is_targeted):
 	real = tf.reduce_sum(labels * preds, 1)
 	other = tf.reduce_max((1 - labels) * preds - (labels * 10000), 1)
@@ -51,20 +39,21 @@ def perturb_loss(preds, thresh=0.3):
 
 
 # function that defines ops, graphs, and training procedure for AdvGAN framework
-def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
+def AdvGAN(dataset, epochs=50, batch_size=32, target=-1):
 	# placeholder definitions
-	x_pl = tf.placeholder(tf.float32, [None, X.shape[1]]) # data placeholder
-	t = tf.placeholder(tf.float32, [None, y.shape[-1]]) # target placeholder
+	x_pl = tf.placeholder(tf.float32, [None, dataset.train.data.shape[-1]]) # data placeholder
+	t = tf.placeholder(tf.float32, [None, dataset.train.labels.shape[-1]]) # target placeholder
 	is_training = tf.placeholder(tf.bool, [])
+	target_is_training = tf.placeholder(tf.bool, [])
 
 	#-----------------------------------------------------------------------------------
 	# MODEL DEFINITIONS
 	is_targeted = False
-	if target in range(0, y.shape[-1]):
+	if target in range(0, dataset.train.labels.shape[-1]):
 		is_targeted = True
 
 	# gather target model
-	f = target_model()
+	f = target_model(n_input=dataset.train.data.shape[-1], n_classes=dataset.train.labels.shape[-1])
 
 	thresh = 0.3
 
@@ -78,8 +67,8 @@ def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
 	d_fake_logits, d_fake_probs = discriminator(x_perturbed, is_training)
 	
 	# pass real and perturbed images to the model we are trying to fool
-	f_real_logits, f_real_probs = f.ModelC(x_pl)
-	f_fake_logits, f_fake_probs = f.ModelC(x_perturbed)
+	f_real_logits, f_real_probs = f.Model(x_pl, target_is_training)
+	f_fake_logits, f_fake_probs = f.Model(x_perturbed, target_is_training)
 
 	
 	# generate labels for discriminator (optionally smooth labels for stability)
@@ -106,20 +95,20 @@ def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
 	# weights for generator loss function
 	alpha = 1.0
 	beta = 1.0
-	g_loss = l_adv + alpha*g_loss_fake + beta*l_perturb 
+	g_loss = l_adv + alpha*g_loss_fake #+ beta*l_perturb 
 
 	# ----------------------------------------------------------------------------------
 	# gather variables for training/restoring
 	t_vars = tf.trainable_variables()
-	f_vars = [var for var in t_vars if 'ModelC' in var.name]
-	d_vars = [var for var in t_vars if 'd_' in var.name]
-	g_vars = list(set([var for var in t_vars if 'g_' in var.name] + tf.get_collection("g_batch_norm_non_trainable")))
+	f_vars = [var for var in t_vars if 'Model_A' in var.name]
+	d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='discriminator')
+	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
 
 	# define optimizers for discriminator and generator
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 	with tf.control_dependencies(update_ops):
-		d_opt = tf.train.AdamOptimizer().minimize(d_loss, var_list=d_vars)
-		g_opt = tf.train.AdamOptimizer(learning_rate=0.001).minimize(g_loss, var_list=g_vars)
+		d_opt = tf.train.AdamOptimizer(learning_rate=0.0002).minimize(d_loss, var_list=d_vars)
+		g_opt = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(g_loss, var_list=g_vars)
 
 	# create saver objects for the target model, generator, and discriminator
 	saver = tf.train.Saver(f_vars)
@@ -133,16 +122,16 @@ def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
 
 	# load the pretrained target model
 	try:
-		saver.restore(sess, "./weights/target_model/model.ckpt")
+		saver.restore(sess, tf.train.latest_checkpoint("./weights/target_model/Model_A/"))
 	except:
 		print("make sure to train the target model first...")
 		sys.exit(1)
 
-	total_batches = int(X.shape[0] / batch_size)
+	total_batches = int(dataset.train.num_examples / batch_size)
 
 	for epoch in range(0, epochs):
 
-		X, y = shuffle(X, y)
+		dataset.shuffle()
 		loss_D_sum = 0.0
 		loss_G_fake_sum = 0.0
 		loss_perturb_sum = 0.0
@@ -150,12 +139,12 @@ def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
 
 		for i in range(total_batches):
 
-			batch_x, batch_y = next_batch(X, y, i, batch_size)
+			batch_x, batch_y = dataset.train.next_batch(batch_size, i)
 
 			# if targeted, create one hot vectors of the target
 			if is_targeted:
 				targets = np.full((batch_y.shape[0],), target)
-				batch_y = np.eye(y.shape[-1])[targets]
+				batch_y = np.eye(dataset.train.labels.shape[-1])[targets]
 
 			# train the discriminator first n times
 			for _ in range(1):
@@ -168,7 +157,8 @@ def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
 									sess.run([g_opt, g_loss_fake, l_adv, l_perturb], \
 												feed_dict={x_pl: batch_x, \
 														   t: batch_y, \
-														   is_training: True})
+														   is_training: True, \
+														   target_is_training: False})
 			loss_D_sum += loss_D_batch
 			loss_G_fake_sum += loss_G_fake_batch
 			loss_perturb_sum += loss_perturb_batch
@@ -183,25 +173,30 @@ def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
 			g_saver.save(sess, "weights/generator/gen.ckpt")
 			d_saver.save(sess, "weights/discriminator/disc.ckpt")
 
+	# quick sample to see some outputs
+	rawpert, pert, fake_l, real_l = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], \
+												feed_dict={x_pl: dataset.test.data[:32], \
+														   is_training: False, \
+														   target_is_training: False})
+	print('LA: ' + str(np.argmax(dataset.test.labels[:32], axis=1)))
+	print('OG: ' + str(np.argmax(real_l, axis=1)))
+	print('PB: ' + str(np.argmax(fake_l, axis=1)))
+
+
 	# evaluate the test set
 	correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(t, 1))
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 	accs = []
-	total_batches_test = int(X_test.shape[0] / batch_size)
+	total_batches_test = int(dataset.test.num_examples / batch_size)
 	for i in range(total_batches_test):
-		batch_x, batch_y = next_batch(X_test, y_test, i, batch_size)
-		acc, x_pert = sess.run([accuracy, x_perturbed], feed_dict={x_pl: batch_x, t: batch_y, is_training: False})
+		batch_x, batch_y = dataset.test.next_batch(batch_size, i)
+		acc, x_pert = sess.run([accuracy, x_perturbed], feed_dict={x_pl: batch_x, \
+																   t: batch_y, \
+																   is_training: False, \
+																   target_is_training: False})
 		accs.append(acc)
 
 	print('accuracy of test set: {}'.format(sum(accs) / len(accs)))
-
-	# plot some images and their perturbed counterparts
-	f, axarr = plt.subplots(2,2)
-	axarr[0,0].imshow(np.squeeze(batch_x[2]), cmap='Greys_r')
-	axarr[0,1].imshow(np.squeeze(x_pert[2]), cmap='Greys_r')
-	axarr[1,0].imshow(np.squeeze(batch_x[5]), cmap='Greys_r')
-	axarr[1,1].imshow(np.squeeze(x_pert[5]), cmap='Greys_r')
-	plt.show()
 
 	print('finished training, saving weights')
 	g_saver.save(sess, "weights/generator/gen.ckpt")
@@ -211,68 +206,63 @@ def AdvGAN(X, y, X_test, y_test, epochs=50, batch_size=128, target=-1):
 
 
 
-def attack(X, y, batch_size=128, thresh=0.3, target=-1):
-	x_pl = tf.placeholder(tf.float32, [None, X.shape[1], X.shape[2], X.shape[3]]) # image placeholder
-	t = tf.placeholder(tf.float32, [None, 10]) # target placeholder
+def attack(dataset, batch_size=64, thresh=0.3, target=-1):
+	x_pl = tf.placeholder(tf.float32, [None, dataset.test.data.shape[-1]]) # image placeholder
+	t = tf.placeholder(tf.float32, [None, dataset.test.labels.shape[-1]]) # target placeholder
 	is_training = tf.placeholder(tf.bool, [])
+	is_training_target = tf.placeholder(tf.bool, [])
 
 	is_targeted = False
-	if target in range(0, y.shape[-1]):
+	if target in range(0, dataset.test.labels.shape[-1]):
 		is_targeted = True
 
 	perturb = tf.clip_by_value(generator(x_pl, is_training), -thresh, thresh)
 	x_perturbed = perturb + x_pl
 	x_perturbed = tf.clip_by_value(x_perturbed, 0, 1)
 
-	f = target_model()
-	f_real_logits, f_real_probs = f.ModelC(x_pl)
-	f_fake_logits, f_fake_probs = f.ModelC(x_perturbed)
+	f = target_model(n_input=dataset.train.data.shape[-1], n_classes=dataset.train.labels.shape[-1])
+	f_real_logits, f_real_probs = f.Model(x_pl, is_training_target)
+	f_fake_logits, f_fake_probs = f.Model(x_perturbed, is_training_target)
 
 	t_vars = tf.trainable_variables()
-	f_vars = [var for var in t_vars if 'ModelC' in var.name]
-	g_vars = list(set([var for var in t_vars if 'g_' in var.name] + tf.get_collection("g_batch_norm_non_trainable")))
-
-	# init = tf.global_variables_initializer()
+	f_vars = [var for var in t_vars if 'Model_A' in var.name]
+	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
 
 	sess = tf.Session()
-	# sess.run(init)
 
 	f_saver = tf.train.Saver(f_vars)
 	g_saver = tf.train.Saver(g_vars)
-	f_saver.restore(sess, "./weights/target_model/model.ckpt")
-	g_saver.restore(sess, "./weights/generator/gen.ckpt")
+	f_saver.restore(sess, tf.train.latest_checkpoint("./weights/target_model/Model_A/"))
+	g_saver.restore(sess, tf.train.latest_checkpoint("./weights/generator/"))
 
 	rawpert, pert, fake_l, real_l = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], \
-												feed_dict={x_pl: X[:32], \
-														   is_training: False})
-	print('LA: ' + str(np.argmax(y[:32], axis=1)))
+												feed_dict={x_pl: dataset.test.data[:32], \
+														   is_training: False, \
+														   is_training_target: False})
+	print('LA: ' + str(np.argmax(dataset.test.labels[:32], axis=1)))
 	print('OG: ' + str(np.argmax(real_l, axis=1)))
 	print('PB: ' + str(np.argmax(fake_l, axis=1)))
 
 	correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(t, 1))
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 	accs = []
-	total_batches_test = int(X.shape[0] / batch_size)
+	total_batches_test = int(dataset.test.num_examples / batch_size)
 	for i in range(total_batches_test):
-		batch_x, batch_y = next_batch(X, y, i, batch_size)
+		batch_x, batch_y = dataset.train.next_batch(batch_size, i)
 
 		if is_targeted:
 			targets = np.full((batch_y.shape[0],), target)
 			batch_y = np.eye(y.shape[-1])[targets]
 
-		acc, fake_l, x_pert = sess.run([accuracy, f_fake_probs, x_perturbed], feed_dict={x_pl: batch_x, t: batch_y, is_training: False})
+		acc, fake_l, x_pert = sess.run([accuracy, f_fake_probs, x_perturbed], feed_dict={x_pl: batch_x, \
+																						 t: batch_y, \
+																						 is_training: False, \
+																						 is_training_target: False})
 		accs.append(acc)
 
 	print('accuracy of test set: {}'.format(sum(accs) / len(accs)))
 
-	f, axarr = plt.subplots(2,2)
-	axarr[0,0].imshow(np.squeeze(X[3]), cmap='Greys_r')
-	axarr[0,1].imshow(np.squeeze(pert[3]), cmap='Greys_r')
-	axarr[1,0].imshow(np.squeeze(X[4]), cmap='Greys_r')
-	axarr[1,1].imshow(np.squeeze(pert[4]), cmap='Greys_r')
-	plt.show()
-	# print(p.shape)
-	# plt.imshow(p[1,:,:],cmap="Greys_r")
+
 
 if __name__ == '__main__':
 	#Parse Arguments
@@ -281,7 +271,7 @@ if __name__ == '__main__':
 	parser.add_argument('--dataset', help='dataset to be used', type=str, required=True)
 	parser.add_argument('--gene_list', help='list of genes in dataset (same order as dataset)', \
 		type=str, required=True)
-	parser.add_argument('--sample_json', help='json file containing number of samples per class', \
+	parser.add_argument('--class_counts', help='json file containing number of samples per class', \
 		type=str, required=True)
 	parser.add_argument('--subset_list', help='gmt/gct file containing subsets', type=str, required=False)
 	parser.add_argument('--set', help='specific subset to run', type=str, required=False)
@@ -293,7 +283,7 @@ if __name__ == '__main__':
 	print('loading genetic data...')
 	gtex_gct_flt = np.load(args.dataset)
 	total_gene_list = np.load(args.gene_list)
-	data = load_data(args.sample_json, gtex_gct_flt)
+	data = load_data(args.class_counts, gtex_gct_flt)
 
 	# if subset is passed, filter out the genes that are not in the total gene list
 	# and redefine the subsets with valid genes
@@ -327,8 +317,15 @@ if __name__ == '__main__':
 		# dataset using every gene
 		dataset = DC(data, total_gene_list)
 
-	# AdvGAN(X, y, batch_size=128, epochs=100)
-	#attack(X_test, y_test)
+	# preprocess data
+	scaler = preprocessing.MinMaxScaler() #preprocessing.MaxAbsScaler()
+	dataset.train.data = scaler.fit_transform(dataset.train.data)
+	dataset.test.data = scaler.fit_transform(dataset.test.data)
+
+	print(dataset.label_names_ordered)
+
+	AdvGAN(dataset, batch_size=32, epochs=10, target=5)
+	# attack(dataset)
 
 
 
