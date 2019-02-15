@@ -103,7 +103,7 @@ class DataContainer:
 	#       train_split:     percentage (in integer form) for training class split
 	#       test_split:      percentage (in integer form) for testing class split
 	#
-	def split_set(self, data, total_gene_list=None, sub_gene_list=None, train_split=70, test_split=30):
+	def split_set(self, data, total_gene_list=None, sub_gene_list=None, train_split=80, test_split=20):
 
 		if test_split + train_split != 100:
 			print('Test and train split must sum to 100!')

@@ -324,7 +324,7 @@ if __name__ == '__main__':
 
 	print(dataset.label_names_ordered)
 
-	AdvGAN(dataset, batch_size=32, epochs=10, target=5)
+	AdvGAN(dataset, batch_size=32, epochs=20, target=6)
 	# attack(dataset)
 
 
