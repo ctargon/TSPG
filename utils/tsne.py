@@ -6,23 +6,42 @@ from sklearn.manifold import TSNE
 import numpy as np 
 import matplotlib.pyplot as plt 
 import matplotlib.cm as cm
+from sklearn import preprocessing
 
-from utils import load_data
+from utils import load_data, read_subset_file
 from dataset import DataContainer as DC
 
 # DATASET: datacontainer type holding RNAseq data
 # LABELS_TO_USE: list of integer indices for classes to include
-def tsne_viz(dataset, labels_to_use):
+def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 	tsne_data = []
 	labels = []
 	len_data = []
+
+	np.set_printoptions(precision=4, suppress=True)
 
 	for l in labels_to_use:
 		indices = np.where(np.argmax(dataset.train.labels,axis=1) == l)[0]
 		len_data.append(indices.shape[0])
 		tsne_data.append(dataset.train.data[indices])
 		labels.append(str(dataset.label_names_ordered[l]))
+
+		if l == perturbed_label:
+			print('normal')
+			print(np.mean(tsne_data[-1], axis=0))
+
+	print('perturbed')
+	print(perturbed[0])
+
+	if (perturbed is not None):
+		num_perturbed_samples = 500
+		tsne_data.append(perturbed[:num_perturbed_samples])
+		labels_to_use.append(perturbed_label)
+		len_data.append(num_perturbed_samples)
+		labels.append('perturbed ' + str(dataset.label_names_ordered[perturbed_label]))
+	
 	data_t = np.vstack(tsne_data)
+	print(data_t.shape)
 
 	print('calculating tsne...')
 	tsne = TSNE()
@@ -35,10 +54,6 @@ def tsne_viz(dataset, labels_to_use):
 	print(len_data)
 	for i in len_data:
 		end = start + i
-
-		print('start: ' + str(start))
-		print('end: ' + str(end))
-		
 		data_separate.append(t_data[start:end])
 		start += i
 
@@ -70,6 +85,42 @@ if __name__ == '__main__':
 	total_gene_list = np.load("./data/gtex_gene_list_v7.npy")
 	data = load_data("./data/gtex_tissue_count_v7.json", gtex_gct_flt)
 
-	dataset = DC(data, total_gene_list, train_split=100, test_split=0)
+	perturbed = np.load("./data/perturbed_2.npy")
 
-	tsne_viz(dataset, [10, 12, 14, 16, 18, 20])#, 25, 40, 43, 50, 52])
+	subset = "HALLMARK_HEDGEHOG_SIGNALING"
+
+	if subset:
+		subsets = read_subset_file("./data/hallmark_experiments.txt")
+
+		tot_genes = []
+		missing_genes = []
+
+		print('checking for valid genes...')
+		for s in subsets:
+			genes = []
+			for g in subsets[s]:
+				if g not in tot_genes:
+					tot_genes.append(g)
+				if g in total_gene_list:
+					genes.append(g)
+				else:
+					if g not in missing_genes:
+						missing_genes.append(g)
+			subsets[s] = genes
+					#print('missing gene ' + str(g))
+		print('missing ' + str(len(missing_genes)) + '/' + str(len(tot_genes)) + ' genes' + ' or ' \
+			 + str(int((float(len(missing_genes)) / len(tot_genes)) * 100.0)) + '% of genes')
+
+	if subset:
+		# dataset using only certain genes
+		dataset = DC(data, total_gene_list, subsets[subset.upper()], train_split=100, test_split=0)
+	else:
+		# dataset using every gene
+		dataset = DC(data, total_gene_list, train_split=100, test_split=0)
+
+	# preprocess data
+	scaler = preprocessing.MinMaxScaler() #preprocessing.MaxAbsScaler()
+	dataset.train.data = scaler.fit_transform(dataset.train.data)
+	#dataset.test.data = scaler.fit_transform(dataset.test.data)
+
+	tsne_viz(dataset, [2, 5, 22, 36, 42, 44], perturbed, 22)#, 25, 40, 43, 50, 52])

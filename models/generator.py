@@ -7,12 +7,13 @@
 import tensorflow as tf
 
 # helper function for convolution -> instance norm -> relu
-def DenseInstNormRelu(x, units):
+def DenseInstNormRelu(x, units, training):
 	dense = tf.layers.dense(inputs=x, units=units, activation=None)
 
-	InstNorm = tf.contrib.layers.instance_norm(dense)
+	#InstNorm = tf.contrib.layers.instance_norm(dense)
+	bn = tf.layers.batch_normalization(dense, training=training)
 
-	return tf.nn.relu(InstNorm)
+	return tf.nn.relu(bn)
 
 # helper function for residual block of 2 convolutions with same num filters
 # in the same style as ConvInstNormRelu
@@ -30,9 +31,9 @@ def ResBlock(x, training, units):
 def generator(x, training):
 	with tf.variable_scope('generator', reuse=tf.AUTO_REUSE):
 		# define first three dense + inst + relu layers
-		d1 = DenseInstNormRelu(x, units=512)
-		d2 = DenseInstNormRelu(d1, units=256)
-		d3 = DenseInstNormRelu(d2, units=128)
+		d1 = DenseInstNormRelu(x, units=512, training=training)
+		d2 = DenseInstNormRelu(d1, units=256, training=training)
+		d3 = DenseInstNormRelu(d2, units=128, training=training)
 
 		# define residual blocks
 		rb1 = ResBlock(d3, training, units=128)
@@ -41,15 +42,15 @@ def generator(x, training):
 		#rb4 = ResBlock(rb3, training, filters=32)
 
 		# upsample using conv transpose
-		u1 = DenseInstNormRelu(rb3, units=256)
-		u2 = DenseInstNormRelu(u1, units=512)
+		u1 = DenseInstNormRelu(rb3, units=256, training=training)
+		u2 = DenseInstNormRelu(u1, units=512, training=training)
 
 		# final layer block
 		out = tf.layers.dense(u2, units=x.get_shape()[-1], activation=None)
 
 		# out = tf.contrib.layers.instance_norm(out)
 
-		return tf.nn.tanh(out)
+		return tf.nn.tanh(out), out
 
 
 
