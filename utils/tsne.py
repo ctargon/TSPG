@@ -26,16 +26,12 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 		tsne_data.append(dataset.train.data[indices])
 		labels.append(str(dataset.label_names_ordered[l]))
 
-		if l == perturbed_label:
-			print('normal')
-			print(np.mean(tsne_data[-1], axis=0))
-
-	print('perturbed')
-	print(perturbed[0])
 
 	if (perturbed is not None):
-		num_perturbed_samples = 500
-		tsne_data.append(perturbed[:num_perturbed_samples])
+		num_perturbed_samples = 100
+		r_idxs = np.arange(perturbed.shape[0])
+		np.random.shuffle(r_idxs)
+		tsne_data.append(perturbed[r_idxs[:num_perturbed_samples]])
 		labels_to_use.append(perturbed_label)
 		len_data.append(num_perturbed_samples)
 		labels.append('perturbed ' + str(dataset.label_names_ordered[perturbed_label]))
@@ -85,7 +81,7 @@ if __name__ == '__main__':
 	total_gene_list = np.load("./data/gtex_gene_list_v7.npy")
 	data = load_data("./data/gtex_tissue_count_v7.json", gtex_gct_flt)
 
-	perturbed = np.load("./data/perturbed_2.npy")
+	perturbed = np.load("./data/perturbed_33.npy")
 
 	subset = "HALLMARK_HEDGEHOG_SIGNALING"
 
@@ -123,4 +119,4 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	#dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	tsne_viz(dataset, [2, 5, 22, 36, 42, 44], perturbed, 22)#, 25, 40, 43, 50, 52])
+	tsne_viz(dataset, [2, 10, 25, 33, 41, 48], perturbed, 33)#, 25, 40, 43, 50, 52])

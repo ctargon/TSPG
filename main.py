@@ -111,8 +111,8 @@ def AdvGAN(dataset, epochs=50, batch_size=32, target=-1):
 	# define optimizers for discriminator and generator
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 	with tf.control_dependencies(update_ops):
-		d_opt = tf.train.AdamOptimizer(learning_rate=0.0002).minimize(d_loss, var_list=d_vars)
-		g_opt = tf.train.AdamOptimizer(learning_rate=0.0005).minimize(g_loss, var_list=g_vars)
+		d_opt = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(d_loss, var_list=d_vars)
+		g_opt = tf.train.AdamOptimizer(learning_rate=0.0002).minimize(g_loss, var_list=g_vars)
 
 	# create saver objects for the target model, generator, and discriminator
 	saver = tf.train.Saver(f_vars)
@@ -336,8 +336,8 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	# AdvGAN(dataset, batch_size=32, epochs=20, target=22)
-	attack(dataset, target=22)
+	# AdvGAN(dataset, batch_size=32, epochs=75, target=33)
+	attack(dataset, target=33)
 
 
 
