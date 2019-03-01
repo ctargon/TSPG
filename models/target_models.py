@@ -190,6 +190,47 @@ class Target_B(Target):
 		return self.inference_model(dataset, "Model_B")
 
 
+class Target_C(Target):
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256,\
+					restore=0):
+		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, restore)
+		os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+
+	# USAGE:
+	# 		- encoder network for vae
+	# PARAMS:
+	#	x: input data sample
+	#	h_hidden: LIST of num. neurons per hidden layer
+	def Model(self, x, training):
+		with tf.variable_scope('Model_C', reuse=tf.AUTO_REUSE):
+			fc1 = tf.layers.dense(inputs=x, units=1024, activation=None)
+			fc1_bn = tf.nn.relu(tf.layers.batch_normalization(fc1, training=training))
+
+			fc2 = tf.layers.dense(inputs=fc1_bn, units=1024, activation=None)
+			fc2_bn = tf.nn.relu(tf.layers.batch_normalization(fc2, training=training))
+
+			fc3 = tf.layers.dense(inputs=fc2_bn, units=512, activation=None)
+			fc3_bn = tf.nn.relu(tf.layers.batch_normalization(fc2, training=training))
+			
+			fc4 = tf.layers.dense(inputs=fc3_bn, units=512, activation=None)
+			fc4_bn = tf.nn.relu(tf.layers.batch_normalization(fc2, training=training))
+
+			fc5 = tf.layers.dense(inputs=fc4_bn, units=128, activation=None)
+			fc5_bn = tf.nn.relu(tf.layers.batch_normalization(fc3, training=training))
+
+			logits = tf.layers.dense(inputs=fc5_bn, units=self.n_classes, activation=None)
+
+			probs = tf.nn.softmax(logits)
+
+			return logits, probs
+
+	def train(self, dataset):
+		return self.train_model(dataset, "Model_C")
+
+	def inference(self, dataset):
+		return self.inference_model(dataset, "Model_C")
+
 
 if __name__ == '__main__':
 	#Parse Arguments
@@ -248,7 +289,7 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	mlp = Target_A(n_input=dataset.train.data.shape[1], n_classes=len(data), batch_size=128, epochs=30)
+	mlp = Target_C(n_input=dataset.train.data.shape[1], n_classes=len(data), batch_size=128, epochs=30)
 	mlp.train(dataset)
 	mlp.inference(dataset)
 

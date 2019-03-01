@@ -7,6 +7,15 @@ import sys
 
 
 # USAGE:
+#   -helper function to print out the classes/number corresponding to the class
+def print_class_counts(class_counts_file):
+	cc_dict = json.load(open(class_counts_file))
+	for i, k in zip(enumerate(sorted(cc_dict)), (sorted(cc_dict))):
+		print("{}: {} {}".format(i[0], str(k), f[k]))
+
+
+
+# USAGE:
 #	-check the arguments are correct for the program
 # PARAMS:
 #	args: list of program arguments

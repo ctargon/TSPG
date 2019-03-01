@@ -60,6 +60,8 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 	colors = cm.rainbow(np.linspace(0, 1, len(labels_to_use)))
 
 	for d, c, l in zip(data_separate, colors, labels):
+		if "PERTURB" in l.upper():
+			c = 'k'
 		ax.scatter(d[:,0], d[:,1], color=c, label=l)
 
 
@@ -81,7 +83,7 @@ if __name__ == '__main__':
 	total_gene_list = np.load("./data/gtex_gene_list_v7.npy")
 	data = load_data("./data/gtex_tissue_count_v7.json", gtex_gct_flt)
 
-	perturbed = np.load("./data/perturbed_33.npy")
+	perturbed = np.load("./data/perturbed_46.npy")
 
 	subset = "HALLMARK_HEDGEHOG_SIGNALING"
 
@@ -119,4 +121,4 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	#dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	tsne_viz(dataset, [2, 10, 25, 33, 41, 48], perturbed, 33)#, 25, 40, 43, 50, 52])
+	tsne_viz(dataset, [0, 2, 10, 19, 25, 33, 34, 36, 46, 48], perturbed, 46)

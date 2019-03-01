@@ -48,10 +48,31 @@ def generator(x, training):
 		# final layer block
 		out = tf.layers.dense(u2, units=x.get_shape()[-1], activation=None)
 
-		# out = tf.contrib.layers.instance_norm(out)
-
 		return tf.nn.tanh(out), out
 
+def generator_unet(x, training):
+	with tf.variable_scope('generator', reuse=tf.AUTO_REUSE):
+		# define first three dense + inst + relu layers
+		d1 = DenseBatchNormRelu(x, units=512, training=training)
+		d2 = DenseBatchNormRelu(d1, units=256, training=training)
+		d3 = DenseBatchNormRelu(d2, units=128, training=training)
 
+		# define residual blocks
+		rb1 = ResBlock(d3, training, units=128)
+		rb2 = ResBlock(rb1, training, units=128)
+		rb3 = ResBlock(rb2, training, units=128)
+		#rb4 = ResBlock(rb3, training, filters=32)
+		skip1 = d3 + rb3
+
+		# upsample using conv transpose
+		u1 = DenseBatchNormRelu(skip1, units=256, training=training)
+		skip2 = d2 + u1
+		u2 = DenseBatchNormRelu(skip2, units=512, training=training)
+		skip3 = d1 + u2
+
+		# final layer block
+		out = tf.layers.dense(skip3, units=x.get_shape()[-1], activation=None)
+
+		return tf.nn.tanh(out), out
 
 
