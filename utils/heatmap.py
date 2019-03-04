@@ -4,7 +4,7 @@ import matplotlib.colors as mcol
 import matplotlib.cm as cm
 
 
-def heatmap(arr):
+def heatmap(arr, titles=[r"$X$", r"$P$", r"$X_{adv}$", r"$\mu_{T}$"]):
 	fig, ax = plt.subplots(1, 4)
 
 	# Make a user-defined colormap.
@@ -35,6 +35,8 @@ def heatmap(arr):
 	for i in range(4):
 		im = ax[i].imshow(np.expand_dims(arr[i], -1), cmap="BlueRed")
 		im.set_clim(-1,1)
+
+		ax[i].set_title(titles[i])
 
 		ax[i].set_xticks([])
 		ax[i].set_xticklabels([])
