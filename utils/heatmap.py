@@ -46,7 +46,7 @@ def heatmap(arr):
 			ax[i].set_yticks([])
 			ax[i].set_yticklabels([])
 
-	cbar = ax[i].figure.colorbar(im, ax=ax)
+	cbar = ax[i].figure.colorbar(im, ax=ax, shrink=0.5)
 	cbar.ax.set_ylabel("Expression Level", rotation=-90, va="bottom")
 
 	plt.show()
