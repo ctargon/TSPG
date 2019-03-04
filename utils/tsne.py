@@ -56,7 +56,6 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 	print('plotting')
 	fig, ax = plt.subplots()
 
-	#colors = ['r', 'g', 'b', 'y', 'c', 'm', 'k']
 	colors = cm.rainbow(np.linspace(0, 1, len(labels_to_use)))
 
 	for d, c, l in zip(data_separate, colors, labels):
@@ -68,7 +67,6 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 
 
 	ax.legend(prop={'size': 6})
-	#ax.legend(bbox_to_anchor=(1.01,1), prop={'size': 6})
 	ax.set_axisbelow(True)
 	ax.spines["top"].set_visible(False)
 	ax.spines["right"].set_visible(False)
@@ -95,7 +93,7 @@ if __name__ == '__main__':
 	total_gene_list = np.load("./data/tissue/gtex_gene_list_v7.npy")
 	data = load_data("./data/tissue/gtex_tissue_count_v7.json", gtex_gct_flt)
 
-	perturbed = np.load("./data/perturbed/perturbed_39.npy")
+	perturbed = np.load("./data/perturbed/perturbed_41.npy")
 
 	subset = "HALLMARK_MYOGENESIS"#"HALLMARK_PEROXISOME"
 
@@ -133,4 +131,4 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	#dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 39, 40, 46], perturbed, 39)
+	tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 39, 41, 46], perturbed, 41)

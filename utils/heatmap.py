@@ -5,7 +5,7 @@ import matplotlib.cm as cm
 
 
 def heatmap(arr):
-	fig, ax = plt.subplots()
+	fig, ax = plt.subplots(1, 4)
 
 	# Make a user-defined colormap.
 	# cm1 = mcol.LinearSegmentedColormap.from_list("MyCmapName",["r","b"])
@@ -32,16 +32,21 @@ def heatmap(arr):
 
 	# cpick = cm.ScalarMappable(norm=cnorm,cmap=cm1)
 
-	im = ax.imshow(np.expand_dims(arr, -1), cmap="BlueRed")
-	im.set_clim(-1,1)
+	for i in range(4):
+		im = ax[i].imshow(np.expand_dims(arr[i], -1), cmap="BlueRed")
+		im.set_clim(-1,1)
 
-	ax.set_xticks([])
-	ax.set_yticks(np.arange(arr.shape[0]))
+		ax[i].set_xticks([])
+		ax[i].set_xticklabels([])
 
-	ax.set_xticklabels([])
-	ax.set_yticklabels(np.arange(arr.shape[0]) + 1)
+		if i == 0:
+			ax[i].set_yticks(np.arange(arr.shape[1]))
+			ax[i].set_yticklabels(np.arange(arr.shape[1]) + 1)
+		else:
+			ax[i].set_yticks([])
+			ax[i].set_yticklabels([])
 
-	cbar = ax.figure.colorbar(im, ax=ax)
+	cbar = ax[i].figure.colorbar(im, ax=ax)
 	cbar.ax.set_ylabel("Expression Level", rotation=-90, va="bottom")
 
 	plt.show()
@@ -71,7 +76,9 @@ if __name__ == "__main__":
 						0.1386, 0.2143, 0.2103, 0.033, 0.0134, 0.1262, 0.0846, 0.088, 0.0979, 0.0151,
 						0.1629, 0.118,  0.036,  0.0318, 0.2358, 0.0638])
 
-	heatmap(mu_t)
+	results = np.vstack([x, p , x_hat, mu_t])
+
+	heatmap(results)
 
 
 

@@ -1,9 +1,66 @@
 import json
 import re
 import itertools
-import os
+import os, sys, argparse
 import numpy as np
-import sys
+
+from dataset import DataContainer as DC
+
+def parse_and_load_data():
+	#Parse Arguments
+	parser = argparse.ArgumentParser(description='Run classification on specified dataset, \
+		subset of genes, or a random set')
+	parser.add_argument('--dataset', help='dataset to be used', type=str, required=True)
+	parser.add_argument('--gene_list', help='list of genes in dataset (same order as dataset)', \
+		type=str, required=True)
+	parser.add_argument('--class_counts', help='json file containing number of samples per class', \
+		type=str, required=True)
+	parser.add_argument('--subset_list', help='gmt/gct file containing subsets', type=str, required=False)
+	parser.add_argument('--set', help='specific subset to run', type=str, required=False)
+	parser.add_argument('--target', help='target class', type=int, required=False, default=-1)
+
+	args = parser.parse_args()
+
+	# load the data
+	print('loading genetic data...')
+	gtex_gct_flt = np.load(args.dataset)
+	total_gene_list = np.load(args.gene_list)
+	data = load_data(args.class_counts, gtex_gct_flt)
+
+	# if subset is passed, filter out the genes that are not in the total gene list
+	# and redefine the subsets with valid genes
+	if args.subset_list:
+		subsets = read_subset_file(args.subset_list)
+
+		tot_genes = []
+		missing_genes = []
+
+		print('checking for valid genes...')
+		for s in subsets:
+			genes = []
+			for g in subsets[s]:
+				if g not in tot_genes:
+					tot_genes.append(g)
+				if g in total_gene_list:
+					genes.append(g)
+				else:
+					if g not in missing_genes:
+						missing_genes.append(g)
+			subsets[s] = genes
+					#print('missing gene ' + str(g))
+		print('missing ' + str(len(missing_genes)) + '/' + str(len(tot_genes)) + ' genes' + ' or ' \
+			 + str(int((float(len(missing_genes)) / len(tot_genes)) * 100.0)) + '% of genes')
+
+
+	if args.subset_list:
+		# dataset using only certain genes
+		dataset = DC(data, total_gene_list, subsets[args.set.upper()])
+	else:
+		# dataset using every gene
+		dataset = DC(data, total_gene_list)
+
+	return dataset, args.target
+
 
 
 # USAGE:
