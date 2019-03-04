@@ -62,12 +62,24 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 	for d, c, l in zip(data_separate, colors, labels):
 		if "PERTURB" in l.upper():
 			c = 'k'
-		ax.scatter(d[:,0], d[:,1], color=c, label=l)
+			ax.scatter(d[:,0], d[:,1], color=c, label=l, alpha=0.25)
+			continue
+		ax.scatter(d[:,0], d[:,1], color=c, label=l, alpha=0.75)
 
 
-	ax.legend(bbox_to_anchor=(1.01,1), prop={'size': 6})
-
+	ax.legend(prop={'size': 6})
+	#ax.legend(bbox_to_anchor=(1.01,1), prop={'size': 6})
+	ax.set_axisbelow(True)
+	ax.spines["top"].set_visible(False)
+	ax.spines["right"].set_visible(False)
+	ax.spines["left"].set_visible(False)
+	ax.spines["bottom"].set_visible(False)
+	ax.get_xaxis().set_ticklabels([])
+	ax.get_yaxis().set_ticklabels([])
+	ax.xaxis.set_ticks_position('none')
+	ax.yaxis.set_ticks_position('none')
 	plt.subplots_adjust(right=0.7)
+	plt.grid(b=True, which='major', alpha=0.3)
 
 	plt.show()
 
@@ -79,16 +91,16 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 if __name__ == '__main__':
 	# load data
 	print('loading data...')
-	gtex_gct_flt = np.load("./data/gtex_gct_data_float_v7.npy")
-	total_gene_list = np.load("./data/gtex_gene_list_v7.npy")
-	data = load_data("./data/gtex_tissue_count_v7.json", gtex_gct_flt)
+	gtex_gct_flt = np.load("./data/tissue/gtex_gct_data_float_v7.npy")
+	total_gene_list = np.load("./data/tissue/gtex_gene_list_v7.npy")
+	data = load_data("./data/tissue/gtex_tissue_count_v7.json", gtex_gct_flt)
 
-	perturbed = np.load("./data/perturbed_46.npy")
+	perturbed = np.load("./data/perturbed/perturbed_39.npy")
 
-	subset = "HALLMARK_HEDGEHOG_SIGNALING"
+	subset = "HALLMARK_MYOGENESIS"#"HALLMARK_PEROXISOME"
 
 	if subset:
-		subsets = read_subset_file("./data/hallmark_experiments.txt")
+		subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
 
 		tot_genes = []
 		missing_genes = []
@@ -121,4 +133,4 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	#dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	tsne_viz(dataset, [0, 2, 10, 19, 25, 33, 34, 36, 46, 48], perturbed, 46)
+	tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 39, 40, 46], perturbed, 39)

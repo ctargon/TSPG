@@ -95,13 +95,15 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 	# adversarial loss (encourage misclassification)
 	l_adv = adv_loss(f_fake_probs, t, is_targeted)
 
+	# loss minimizing L1 distance between target class average and perturbed vector
+	# this is used to encourage realism of sample
 	target_normal = tf.placeholder(tf.float32, [None, dataset.train.data.shape[-1]])
-	l_tar_dist = tf.norm(target_normal - x_perturbed, ord=1)
+	l_tar_dist = tf.reduce_mean(tf.norm(target_normal - x_perturbed, axis=1, ord=1))
 
 	# weights for generator loss function
 	alpha = 1.0
 	beta = 1.0
-	g_loss = l_adv + alpha*g_loss_fake + beta*l_perturb  + 1000.0*l_tar_dist
+	g_loss = l_adv + alpha*g_loss_fake + l_tar_dist + beta*l_perturb
 
 	# ----------------------------------------------------------------------------------
 	# gather variables for training/restoring
@@ -145,13 +147,6 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 		loss_target_norm = 0.0
 
 		for i in range(total_batches):
-			# get the next batch based on x, y, and the iteration (based on batch_size)
-			# def random_batch(dataset, batch_size):
-			# 	r_idxs = np.arange(dataset.train.data.shape[0])
-			# 	np.random.shuffle(r_idxs)
-			# 	return dataset.train.data[r_idxs[:batch_size]]
-
-			# batch_xd = random_batch(disc_dataset, batch_size)
 			batch_x, batch_y = dataset.train.next_batch(batch_size, i)
 
 			# if targeted, create one hot vectors of the target
@@ -194,9 +189,9 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 												feed_dict={x_pl: dataset.test.data[:32], \
 														   is_training: False, \
 														   target_is_training: False})
-	print('LA: ' + str(np.argmax(dataset.test.labels[:32], axis=1)))
-	print('OG: ' + str(np.argmax(real_l, axis=1)))
-	print('PB: ' + str(np.argmax(fake_l, axis=1)))
+	print('Original Labels:\n' + str(np.argmax(dataset.test.labels[:32], axis=1)))
+	print('Original Target Model Classification:\n' + str(np.argmax(real_l, axis=1)))
+	print('Perturbed Target Model Classification:\n' + str(np.argmax(fake_l, axis=1)))
 
 
 	# evaluate the test set
@@ -223,7 +218,7 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 
 
 def attack(dataset, batch_size=64, thresh=0.3, target=-1):
-	x_pl = tf.placeholder(tf.float32, [None, dataset.test.data.shape[-1]]) # image placeholder
+	x_pl = tf.placeholder(tf.float32, [None, dataset.test.data.shape[-1]]) # sample placeholder
 	t = tf.placeholder(tf.float32, [None, dataset.test.labels.shape[-1]]) # target placeholder
 	is_training = tf.placeholder(tf.bool, [])
 	is_training_target = tf.placeholder(tf.bool, [])
@@ -233,33 +228,30 @@ def attack(dataset, batch_size=64, thresh=0.3, target=-1):
 		print('target is: ' + str(dataset.label_names_ordered[target]))
 		is_targeted = True
 
-	perturb, logit_perturb = generator(x_pl, is_training)#tf.clip_by_value(generator(x_pl, is_training), -thresh, thresh)
+	# generate pertubation, add to original, clip to valid expression level
+	perturb, logit_perturb = generator(x_pl, is_training)
 	x_perturbed = perturb + x_pl
 	x_perturbed = tf.clip_by_value(x_perturbed, 0, 1)
 
+	# isntantiate target model, create graphs for original and perturbed data
 	f = target_model(n_input=dataset.train.data.shape[-1], n_classes=dataset.train.labels.shape[-1])
 	f_real_logits, f_real_probs = f.Model(x_pl, is_training_target)
 	f_fake_logits, f_fake_probs = f.Model(x_perturbed, is_training_target)
 
+	# get variables
 	t_vars = tf.trainable_variables()
 	f_vars = [var for var in t_vars if 'Model_A' in var.name]
 	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
 
 	sess = tf.Session()
 
+	# load checkpoints
 	f_saver = tf.train.Saver(f_vars)
 	g_saver = tf.train.Saver(g_vars)
 	f_saver.restore(sess, tf.train.latest_checkpoint("./weights/target_model/Model_A/"))
 	g_saver.restore(sess, tf.train.latest_checkpoint("./weights/generator/"))
 
-	rawpert, pert, fake_l, real_l = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], \
-												feed_dict={x_pl: dataset.test.data[:32], \
-														   is_training: False, \
-														   is_training_target: False})
-	print('LA: ' + str(np.argmax(dataset.test.labels[:32], axis=1)))
-	print('OG: ' + str(np.argmax(real_l, axis=1)))
-	print('PB: ' + str(np.argmax(fake_l, axis=1)))
-
+	# calculate accuracy of target model on perturbed data
 	correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(t, 1))
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 	accs = []
@@ -279,6 +271,7 @@ def attack(dataset, batch_size=64, thresh=0.3, target=-1):
 		accs.append(acc)
 		perts.append(x_pert)
 
+	# print a sample original, perturbation, and original + perturbation
 	np.set_printoptions(precision=4, suppress=True)
 	print(str(np.argmax(batch_y_og[0])))
 	print('original sample is: ' + str(dataset.label_names_ordered[np.argmax(batch_y_og, axis=1)[0]]))
@@ -286,7 +279,7 @@ def attack(dataset, batch_size=64, thresh=0.3, target=-1):
 	print(p[0])
 	print(x_pert[0])
 	perts = np.vstack(perts)
-	np.save('./data/perturbed_' + str(target) + '.npy', perts)
+	np.save('./data/perturbed/perturbed_' + str(target) + '.npy', perts)
 
 	print('accuracy of test set: {}'.format(sum(accs) / len(accs)))
 
@@ -345,44 +338,20 @@ if __name__ == '__main__':
 		# dataset using every gene
 		dataset = DC(data, total_gene_list)
 
-	# this condition will oversample a class by the size of the dataset so there is a a greater chance
-	# it is chosen to pass to the discriminator. The goal of this is to push the distribution
-	# of perturbed samples towards the target class
-	# if args.target != -1:
-	# 	class_name = dataset.label_names_ordered[args.target] # get name of class
-	# 	class_data = data[class_name] # get the class data we are going to tile & oversample
-
-	# 	oversample_size = dataset.train.data.shape[0] # dataset is [samples, genes]
-	# 	tile_size = oversample_size / class_data.shape[-1] # class_data is [genes, samples]
-
-	# 	oversamp_data = np.tile(class_data, tile_size)
-	# 	data[class_name] = oversamp_data
-
-	# 	if args.subset_list:
-	# 		# dataset using only certain genes
-	# 		disc_dataset = DC(data, total_gene_list, subsets[args.set.upper()], train_split=100, test_split=0)
-	# 	else:
-	# 		# dataset using every gene
-	# 		disc_dataset = DC(data, total_gene_list, train_split=100, test_split=0)
-	# 	print(disc_dataset.train.data.shape)
-
-
 
 	# preprocess data
 	scaler = preprocessing.MinMaxScaler() #preprocessing.MaxAbsScaler()
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	dataset.test.data = scaler.fit_transform(dataset.test.data)
 
+	# get mu and sigma of target class feature vectors
 	t_idxs = np.where(args.target == np.argmax(dataset.train.labels, axis=1))
 	target_data = dataset.train.data[t_idxs]
 	target_mu = np.mean(target_data, axis=0)
 	target_cov = np.cov(target_data, rowvar=False)
 
-	# AdvGAN(dataset, target_mu, target_cov, batch_size=32, epochs=50, target=args.target)
+	# AdvGAN(dataset, target_mu, target_cov, batch_size=32, epochs=75, target=args.target)
 	attack(dataset, target=args.target)
-
-	print('average expression for target: ')
-	print(target_mu)
 
 
 

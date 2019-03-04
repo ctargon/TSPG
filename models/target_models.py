@@ -289,7 +289,9 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	mlp = Target_C(n_input=dataset.train.data.shape[1], n_classes=len(data), batch_size=128, epochs=30)
+	print('num genes: ' + str(dataset.train.data.shape[1]))
+
+	mlp = Target_A(n_input=dataset.train.data.shape[1], n_classes=len(data), batch_size=128, epochs=30)
 	mlp.train(dataset)
 	mlp.inference(dataset)
 
