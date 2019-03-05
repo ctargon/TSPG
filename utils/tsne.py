@@ -93,9 +93,10 @@ if __name__ == '__main__':
 	total_gene_list = np.load("./data/tissue/gtex_gene_list_v7.npy")
 	data = load_data("./data/tissue/gtex_tissue_count_v7.json", gtex_gct_flt)
 
-	perturbed = np.load("./data/perturbed/perturbed_41.npy")
+	perturbed = np.load("./data/perturbed/perturbed_39.npy")
 
-	subset = "HALLMARK_MYOGENESIS"#"HALLMARK_PEROXISOME"
+	#subset = "HALLMARK_MYOGENESIS"#"HALLMARK_PEROXISOME"
+	subset = "HALLMARK_HEDGEHOG_SIGNALING"
 
 	if subset:
 		subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
@@ -131,4 +132,4 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	#dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 39, 41, 46], perturbed, 41)
+	tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 39, 41, 46], perturbed, 39)
