@@ -14,6 +14,14 @@ from models.generator import generator
 from models.target_models import Target_A as target_model
 from utils.utils import parse_and_load_data
 
+def cleanse_label(label):
+	label = label.replace(" ", "_")
+	label = label.replace("-", "")
+	label = label.replace("(", "")
+	label = label.replace(")", "")
+	return label
+
+
 def targeted_specific_attack(dataset, start, target, mu_T):
 	s_idxs = np.where(start == np.argmax(dataset.train.labels, axis=1))
 	data = dataset.train.data[s_idxs]
@@ -64,17 +72,21 @@ def targeted_specific_attack(dataset, start, target, mu_T):
 															is_training: False, \
 															is_training_target: False})
 
+	print('original sample is: ' + str(dataset.label_names_ordered[start]))
+	print(data[0])
+	print("perturbation:")
+	print(p[0])
+	print("X_adv:")
+	print(x_pert[0])
+	print("mu_target:")
+	print(mu_T)
+
 	# save the results in X, P, X_adv, mu_T order
 	results = np.vstack([data[0], p[0], x_pert[0], mu_T])
 
-	start_tissue = start_tissue.replace(" ", "_")
-	target_tissue = target_tissue.replace(" ", "_")
-	start_tissue = start_tissue.replace("-", "")
-	start_tissue = start_tissue.replace("(", "")
-	start_tissue = start_tissue.replace(")", "")
-	target_tissue = target_tissue.replace("-", "")
-	target_tissue = target_tissue.replace("(", "")
-	target_tissue = target_tissue.replace(")", "")
+	start_tissue = cleanse_label(start_tissue)
+	target_tissue = cleanse_label(target_tissue)
+
 	np.save("./data/heatmap/" + start_tissue + "_to_" + target_tissue + ".npy", results)
 
 
@@ -161,6 +173,6 @@ if __name__ == '__main__':
 	target_mu = np.mean(target_data, axis=0)
 	target_cov = np.cov(target_data, rowvar=False)
 
-	#attack(dataset, target=target)
-	targeted_specific_attack(dataset, 1, target, target_mu)
+	attack(dataset, target=target)
+	targeted_specific_attack(dataset, 41, target, target_mu)
 

@@ -34,7 +34,7 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 		tsne_data.append(perturbed[r_idxs[:num_perturbed_samples]])
 		labels_to_use.append(perturbed_label)
 		len_data.append(num_perturbed_samples)
-		labels.append('perturbed ' + str(dataset.label_names_ordered[perturbed_label]))
+		labels.append('Perturbed ' + str(dataset.label_names_ordered[perturbed_label]))
 	
 	data_t = np.vstack(tsne_data)
 	print(data_t.shape)
@@ -92,14 +92,18 @@ if __name__ == '__main__':
 	gtex_gct_flt = np.load("./data/tissue/gtex_gct_data_float_v7.npy")
 	total_gene_list = np.load("./data/tissue/gtex_gene_list_v7.npy")
 	data = load_data("./data/tissue/gtex_tissue_count_v7.json", gtex_gct_flt)
+	# kidney_flt = np.load("./data/kidney/gems/kidney_all.npy")
+	# total_gene_list = np.load("./data/kidney/kidney_gene_list.npy")
+	# data = load_data("./data/kidney/gems/kidney_all_count.json", kidney_flt)
 
-	perturbed = np.load("./data/perturbed/perturbed_39.npy")
-
-	#subset = "HALLMARK_MYOGENESIS"#"HALLMARK_PEROXISOME"
-	subset = "HALLMARK_HEDGEHOG_SIGNALING"
+	subset = "RANDOM50_2"
+	#subset = "HALLMARK_SUPERSET"
+	#subset = "HALLMARK_TNFA_SIGNALING_VIA_NFKB"#"HALLMARK_PEROXISOME"
+	# subset = "HALLMARK_HEDGEHOG_SIGNALING"
 
 	if subset:
-		subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
+		# subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
+		subsets = read_subset_file("./data/subsets/random_experiments.txt")
 
 		tot_genes = []
 		missing_genes = []
@@ -132,4 +136,16 @@ if __name__ == '__main__':
 	dataset.train.data = scaler.fit_transform(dataset.train.data)
 	#dataset.test.data = scaler.fit_transform(dataset.test.data)
 
-	tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 39, 41, 46], perturbed, 39)
+	rand_idxs = np.arange(0, dataset.num_classes)
+	np.random.shuffle(rand_idxs)
+	rand_idxs = list(rand_idxs[:10])
+
+	pert_idx = 49
+	if pert_idx not in rand_idxs:
+		rand_idxs.pop()
+		rand_idxs.append(pert_idx)
+
+	perturbed = np.load("./data/perturbed/perturbed_" + str(pert_idx) + ".npy")
+
+	tsne_viz(dataset, rand_idxs, perturbed, pert_idx)
+	#tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 42, 50, 46], perturbed, 50)

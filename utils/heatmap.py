@@ -36,7 +36,12 @@ def heatmap(arr, genes, titles=[r"$X$", r"$P$", r"$X_{adv}$", r"$\mu_{T}$"]):
 	# cpick = cm.ScalarMappable(norm=cnorm,cmap=cm1)
 
 	for i in range(4):
-		im = ax[i].imshow(np.expand_dims(arr[i], -1), cmap="BlueRed")
+		# get the vector, then tile it some so it is visible if very long
+		npimg = np.expand_dims(arr[i], -1)
+		npimg = np.tile(npimg, (1,npimg.shape[0]/10))
+
+		# plot tiled vector as heatmap image
+		im = ax[i].imshow(npimg, cmap="BlueRed")
 		im.set_clim(-1,1)
 
 		ax[i].set_title(titles[i])
@@ -44,13 +49,15 @@ def heatmap(arr, genes, titles=[r"$X$", r"$P$", r"$X_{adv}$", r"$\mu_{T}$"]):
 		ax[i].set_xticks([])
 		ax[i].set_xticklabels([])
 
-		if i == 0:
+		# display gene names if the genes are less than 40 otherwise too crowded
+		if i == 0 and len(genes) < 40:
 			ax[i].set_yticks(np.arange(arr.shape[1]))
 			ax[i].set_yticklabels(genes)
 		else:
 			ax[i].set_yticks([])
 			ax[i].set_yticklabels([])
 
+	# insert colobar and shrink it some
 	cbar = ax[i].figure.colorbar(im, ax=ax[i], shrink=0.5)
 	cbar.ax.set_ylabel("Expression Level", rotation=-90, va="bottom")
 
@@ -59,11 +66,13 @@ def heatmap(arr, genes, titles=[r"$X$", r"$P$", r"$X_{adv}$", r"$\mu_{T}$"]):
 
 
 if __name__ == "__main__":
-	results = np.load("./data/heatmap/Adipose__Visceral_Omentum_to_Ovary.npy")
+	results = np.load("./data/heatmap/Pituitary_to_Thyroid.npy")
 
 	# get list of genes
+	#total_gene_list = np.load("./data/kidney/kidney_gene_list.npy")
 	total_gene_list = np.load("./data/tissue/gtex_gene_list_v7.npy")
-	subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
+	#subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
+	subsets = read_subset_file("./data/subsets/random_experiments.txt")
 
 	tot_genes = []
 	missing_genes = []
@@ -84,7 +93,10 @@ if __name__ == "__main__":
 	print('missing ' + str(len(missing_genes)) + '/' + str(len(tot_genes)) + ' genes' + ' or ' \
 		 + str(int((float(len(missing_genes)) / len(tot_genes)) * 100.0)) + '% of genes')
 
-	genes = subsets["HALLMARK_HEDGEHOG_SIGNALING"]
+	genes = subsets["RANDOM50_2"]
+	#genes = subsets["HALLMARK_SUPERSET"]
+	#genes = subsets["HALLMARK_TNFA_SIGNALING_VIA_NFKB"]
+	# genes = subsets["HALLMARK_HEDGEHOG_SIGNALING"]
 	names = ["X", "P", "X_adv", "mu_T"]
 
 	# create dataframe with gene names and 4 vectors

@@ -147,6 +147,8 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 
 		for i in range(total_batches):
 			batch_x, batch_y = dataset.train.next_batch(batch_size, i)
+			target_normal_np = np.random.multivariate_normal(t_mu, t_cov, (batch_size))
+			# target_normal_np = np.tile(t_mu, (batch_size,1)),
 
 			# if targeted, create one hot vectors of the target
 			if is_targeted:
@@ -155,18 +157,18 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 
 			# train the discriminator first n times
 			for _ in range(1):
-				_, loss_D_batch = sess.run([d_opt, d_loss], feed_dict={x_pl: batch_x, \
-																	   target_normal: np.tile(t_mu, (batch_size,1)),#np.random.multivariate_normal(t_mu, t_cov, (batch_size)), \
+				_, loss_D_batch = sess.run([d_opt, d_loss], feed_dict={x_pl: batch_x, 
+																	   target_normal: target_normal_np,
 																	   is_training: True})
 
 			# train the generator n times
 			for _ in range(1):
 				_, loss_G_fake_batch, loss_adv_batch, loss_perturb_batch, loss_target_batch = \
-									sess.run([g_opt, g_loss_fake, l_adv, l_perturb, l_tar_dist], \
-												feed_dict={x_pl: batch_x, \
-														   t: batch_y, \
-														   target_normal: np.tile(t_mu, (batch_size,1)),#np.random.multivariate_normal(t_mu, t_cov, (batch_size)), \
-														   is_training: True, \
+									sess.run([g_opt, g_loss_fake, l_adv, l_perturb, l_tar_dist], 
+												feed_dict={x_pl: batch_x, 
+														   t: batch_y, 
+														   target_normal: target_normal_np,
+														   is_training: True, 
 														   target_is_training: False})
 			loss_D_sum += loss_D_batch
 			loss_G_fake_sum += loss_G_fake_batch
@@ -228,7 +230,7 @@ if __name__ == '__main__':
 	target_mu = np.mean(target_data, axis=0)
 	target_cov = np.cov(target_data, rowvar=False)
 
-	AdvGAN(dataset, target_mu, target_cov, batch_size=32, epochs=75, target=target)
+	AdvGAN(dataset, target_mu, target_cov, batch_size=128, epochs=300, target=target)
 
 
 
