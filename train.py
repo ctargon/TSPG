@@ -145,9 +145,12 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 		loss_adv_sum = 0.0
 		loss_target_norm = 0.0
 
+		target_normal_np = np.random.multivariate_normal(t_mu, t_cov, (batch_size))
+		target_normal_np = np.clip(target_normal_np, 0, 1)
+	
 		for i in range(total_batches):
 			batch_x, batch_y = dataset.train.next_batch(batch_size, i)
-			target_normal_np = np.random.multivariate_normal(t_mu, t_cov, (batch_size))
+			#target_normal_np = np.random.multivariate_normal(t_mu, t_cov, (batch_size))
 			# target_normal_np = np.tile(t_mu, (batch_size,1)),
 
 			# if targeted, create one hot vectors of the target
@@ -230,7 +233,7 @@ if __name__ == '__main__':
 	target_mu = np.mean(target_data, axis=0)
 	target_cov = np.cov(target_data, rowvar=False)
 
-	AdvGAN(dataset, target_mu, target_cov, batch_size=128, epochs=300, target=target)
+	AdvGAN(dataset, target_mu, target_cov, batch_size=128, epochs=150, target=target)
 
 
 
