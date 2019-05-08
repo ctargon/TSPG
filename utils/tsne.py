@@ -7,6 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import matplotlib.cm as cm
 from sklearn import preprocessing
+import argparse
+
+import umap
 
 from utils import load_data, read_subset_file
 from dataset import DataContainer as DC
@@ -42,6 +45,7 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 	print('calculating tsne...')
 	tsne = TSNE()
 	t_data = tsne.fit_transform(data_t)
+	# t_data = umap.UMAP().fit_transform(data_t)
 
 	data_separate = []
 	start = 0
@@ -87,23 +91,30 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 
 
 if __name__ == '__main__':
+	parser = argparse.ArgumentParser(description='Run classification on specified dataset, \
+		subset of genes, or a random set')
+	parser.add_argument('--dataset', help='GEM to be used', type=str, required=True)
+	parser.add_argument('--gene_list', help='list of genes in dataset (same order as dataset)', \
+		type=str, required=True)
+	parser.add_argument('--class_counts', help='json file containing number of samples per class', \
+		type=str, required=True)
+	parser.add_argument('--subset_list', help='gmt/gct file containing subsets', type=str, required=False)
+	parser.add_argument('--set', help='specific subset to run', type=str, required=False)
+	parser.add_argument('--perturbed', help='index of perturbed data to load \
+											from ./data/perturbed', type=int, required=False)
+
+	args = parser.parse_args()
+
 	# load data
 	print('loading data...')
-	gtex_gct_flt = np.load("./data/tissue/gtex_gct_data_float_v7.npy")
-	total_gene_list = np.load("./data/tissue/gtex_gene_list_v7.npy")
-	data = load_data("./data/tissue/gtex_tissue_count_v7.json", gtex_gct_flt)
-	# kidney_flt = np.load("./data/kidney/gems/kidney_all.npy")
-	# total_gene_list = np.load("./data/kidney/kidney_gene_list.npy")
-	# data = load_data("./data/kidney/gems/kidney_all_count.json", kidney_flt)
+	gem = np.load(args.dataset)
+	total_gene_list = np.load(args.gene_list)
+	data = load_data(args.class_counts, gem)
 
-	subset = "RANDOM50_2"
-	#subset = "HALLMARK_SUPERSET"
-	#subset = "HALLMARK_TNFA_SIGNALING_VIA_NFKB"#"HALLMARK_PEROXISOME"
-	# subset = "HALLMARK_HEDGEHOG_SIGNALING"
+	subset = args.set
 
 	if subset:
-		# subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
-		subsets = read_subset_file("./data/subsets/random_experiments.txt")
+		subsets = read_subset_file(args.subset_list)
 
 		tot_genes = []
 		missing_genes = []
@@ -140,12 +151,14 @@ if __name__ == '__main__':
 	np.random.shuffle(rand_idxs)
 	rand_idxs = list(rand_idxs[:10])
 
-	pert_idx = 49
-	if pert_idx not in rand_idxs:
-		rand_idxs.pop()
-		rand_idxs.append(pert_idx)
+	if args.perturbed:
+		pert_idx = args.perturbed
+		if pert_idx not in rand_idxs:
+			rand_idxs.pop()
+			rand_idxs.append(pert_idx)
 
-	perturbed = np.load("./data/perturbed/perturbed_" + str(pert_idx) + ".npy")
+		perturbed = np.load("./data/perturbed/perturbed_" + str(pert_idx) + ".npy")
 
-	tsne_viz(dataset, rand_idxs, perturbed, pert_idx)
-	#tsne_viz(dataset, [0, 2, 10, 19, 25, 32, 33, 42, 50, 46], perturbed, 50)
+		tsne_viz(dataset, rand_idxs, perturbed, pert_idx)
+	else:
+		tsne_viz(dataset, arange(dataset.num_classes))

@@ -11,7 +11,7 @@ def parse_and_load_data():
 	#Parse Arguments
 	parser = argparse.ArgumentParser(description='Run classification on specified dataset, \
 		subset of genes, or a random set')
-	parser.add_argument('--dataset', help='dataset to be used', type=str, required=True)
+	parser.add_argument('--dataset', help='GEM to be used', type=str, required=True)
 	parser.add_argument('--gene_list', help='list of genes in dataset (same order as dataset)', \
 		type=str, required=True)
 	parser.add_argument('--class_counts', help='json file containing number of samples per class', \
@@ -68,7 +68,7 @@ def parse_and_load_data():
 def print_class_counts(class_counts_file):
 	cc_dict = json.load(open(class_counts_file))
 	for i, k in zip(enumerate(sorted(cc_dict)), (sorted(cc_dict))):
-		print("{}: {} {}".format(i[0], str(k), f[k]))
+		print("{}: {} {}".format(i[0], str(k), cc_dict[k]))
 
 
 # get random gene indexes between 0-len total_gene_list

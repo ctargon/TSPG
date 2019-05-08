@@ -174,5 +174,7 @@ if __name__ == '__main__':
 	target_cov = np.cov(target_data, rowvar=False)
 
 	attack(dataset, target=target)
-	targeted_specific_attack(dataset, 41, target, target_mu)
+	
+	# for i in range(dataset.num_classes):
+	# 	targeted_specific_attack(dataset, i, target, target_mu)
 

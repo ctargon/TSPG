@@ -1,3 +1,4 @@
+import os
 import numpy as np 
 import pandas as pd
 import matplotlib.pyplot as plt 
@@ -50,7 +51,7 @@ def heatmap(arr, genes, titles=[r"$X$", r"$P$", r"$X_{adv}$", r"$\mu_{T}$"]):
 		ax[i].set_xticklabels([])
 
 		# display gene names if the genes are less than 40 otherwise too crowded
-		if i == 0 and len(genes) < 40:
+		if i == 0 and len(genes) < 30:
 			ax[i].set_yticks(np.arange(arr.shape[1]))
 			ax[i].set_yticklabels(genes)
 		else:
@@ -66,13 +67,11 @@ def heatmap(arr, genes, titles=[r"$X$", r"$P$", r"$X_{adv}$", r"$\mu_{T}$"]):
 
 
 if __name__ == "__main__":
-	results = np.load("./data/heatmap/Pituitary_to_Thyroid.npy")
-
 	# get list of genes
-	#total_gene_list = np.load("./data/kidney/kidney_gene_list.npy")
+	# total_gene_list = np.load("./data/kidney/kidney_gene_list.npy")
 	total_gene_list = np.load("./data/tissue/gtex_gene_list_v7.npy")
-	#subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
-	subsets = read_subset_file("./data/subsets/random_experiments.txt")
+	subsets = read_subset_file("./data/subsets/hallmark_experiments.txt")
+	# subsets = read_subset_file("./data/subsets/random_experiments.txt")
 
 	tot_genes = []
 	missing_genes = []
@@ -93,10 +92,45 @@ if __name__ == "__main__":
 	print('missing ' + str(len(missing_genes)) + '/' + str(len(tot_genes)) + ' genes' + ' or ' \
 		 + str(int((float(len(missing_genes)) / len(tot_genes)) * 100.0)) + '% of genes')
 
-	genes = subsets["RANDOM50_2"]
-	#genes = subsets["HALLMARK_SUPERSET"]
+	# genes = subsets["RANDOM50_2"]
+	genes = subsets["HALLMARK_ALL"]
 	#genes = subsets["HALLMARK_TNFA_SIGNALING_VIA_NFKB"]
-	# genes = subsets["HALLMARK_HEDGEHOG_SIGNALING"]
+	def printgenes(f, l):
+		for i in range(len(l) - 1):
+			f.write(l[i] + ', ')
+		f.write(l[-1] + "\n")
+
+	def print_top_genes_to_file(fw, indir):
+		files = sorted(os.listdir(indir))
+		files = [indir + "/" + f for f in files]
+
+		results = []
+		for f in files:
+			results.append(np.load(f))
+
+		myf = open(fw, "w")
+		for r,f in zip(results,files):
+			genes = subsets["HALLMARK_ALL"]
+			names = ["X", "P", "X_adv", "mu_T"]
+
+			# create dataframe with gene names and 4 vectors
+			df = pd.DataFrame(data=r.T, columns=names, index=genes)
+
+			# sort dataframe by perturbation
+			df = df.sort_values("P", ascending=False)
+			top = df.iloc[0:20].index.tolist()
+			bottom =  df.iloc[-20:].index.tolist()
+
+			myf.write(f + ", TOP, ")
+			printgenes(myf, top)
+			myf.write(f + ", BOTTOM, ")
+			printgenes(myf, bottom)
+
+	# print_top_genes_to_file("./KIRC-transition-genes.txt", "./data/heatmap/KIRC")
+
+	results = np.load("./data/heatmap/Heart-Left-Ventricle/Thyroid_to_Heart__Left_Ventricle.npy")
+
+	genes = subsets["HALLMARK_ALL"]
 	names = ["X", "P", "X_adv", "mu_T"]
 
 	# create dataframe with gene names and 4 vectors
@@ -104,9 +138,8 @@ if __name__ == "__main__":
 
 	# sort dataframe by perturbation
 	df = df.sort_values("P", ascending=False)
-
+	top = df.iloc[0:20].index.tolist()
+	bottom =  df.iloc[-20:].index.tolist()
 	heatmap(df.values.T, df.index.values.tolist())
-
-
 
 

@@ -150,8 +150,6 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 	
 		for i in range(total_batches):
 			batch_x, batch_y = dataset.train.next_batch(batch_size, i)
-			#target_normal_np = np.random.multivariate_normal(t_mu, t_cov, (batch_size))
-			# target_normal_np = np.tile(t_mu, (batch_size,1)),
 
 			# if targeted, create one hot vectors of the target
 			if is_targeted:
