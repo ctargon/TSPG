@@ -8,7 +8,7 @@ sys.path.append(os.getcwd())
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
-sys.path.append(os.path.join(BASE_DIR, '../'))
+sys.path.append(os.path.join(BASE_DIR, "../"))
 
 from models.generator import generator
 from models.target_models import Target_A as target_model
@@ -34,7 +34,7 @@ def targeted_specific_attack(dataset, start, target, mu_T):
 
 	is_targeted = False
 	if target in range(0, labels.shape[-1]):
-		print('target is: ' + str(dataset.label_names_ordered[target]))
+		print("target is: " + str(dataset.label_names_ordered[target]))
 		is_targeted = True
 
 	# generate pertubation, add to original, clip to valid expression level
@@ -49,8 +49,8 @@ def targeted_specific_attack(dataset, start, target, mu_T):
 
 	# get variables
 	t_vars = tf.trainable_variables()
-	f_vars = [var for var in t_vars if 'Model_A' in var.name]
-	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
+	f_vars = [var for var in t_vars if "Model_A" in var.name]
+	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="generator")
 
 	sess = tf.Session()
 
@@ -72,7 +72,7 @@ def targeted_specific_attack(dataset, start, target, mu_T):
 															is_training: False, \
 															is_training_target: False})
 
-	print('original sample is: ' + str(dataset.label_names_ordered[start]))
+	print("original sample is: " + str(dataset.label_names_ordered[start]))
 	print(data[0])
 	print("perturbation:")
 	print(p[0])
@@ -99,7 +99,7 @@ def attack(dataset, batch_size=64, thresh=0.3, target=-1):
 
 	is_targeted = False
 	if target in range(0, dataset.test.labels.shape[-1]):
-		print('target is: ' + str(dataset.label_names_ordered[target]))
+		print("target is: " + str(dataset.label_names_ordered[target]))
 		is_targeted = True
 
 	# generate pertubation, add to original, clip to valid expression level
@@ -114,8 +114,8 @@ def attack(dataset, batch_size=64, thresh=0.3, target=-1):
 
 	# get variables
 	t_vars = tf.trainable_variables()
-	f_vars = [var for var in t_vars if 'Model_A' in var.name]
-	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
+	f_vars = [var for var in t_vars if "Model_A" in var.name]
+	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="generator")
 
 	sess = tf.Session()
 
@@ -148,18 +148,18 @@ def attack(dataset, batch_size=64, thresh=0.3, target=-1):
 	# print a sample original, perturbation, and original + perturbation
 	np.set_printoptions(precision=4, suppress=True)
 	print(str(np.argmax(batch_y_og[0])))
-	print('original sample is: ' + str(dataset.label_names_ordered[np.argmax(batch_y_og, axis=1)[0]]))
+	print("original sample is: " + str(dataset.label_names_ordered[np.argmax(batch_y_og, axis=1)[0]]))
 	print(batch_x[0])
 	print(p[0])
 	print(x_pert[0])
 	perts = np.vstack(perts)
-	np.save('./data/perturbed/perturbed_' + str(target) + '.npy', perts)
+	np.save("./data/perturbed/perturbed_" + str(target) + ".npy", perts)
 
-	print('accuracy of test set: {}'.format(sum(accs) / len(accs)))
+	print("accuracy of test set: {}".format(sum(accs) / len(accs)))
 
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	dataset, target = parse_and_load_data()
 
 	# preprocess data
@@ -177,4 +177,3 @@ if __name__ == '__main__':
 	
 	# for i in range(dataset.num_classes):
 	# 	targeted_specific_attack(dataset, i, target, target_mu)
-

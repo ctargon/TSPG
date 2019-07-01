@@ -1,8 +1,8 @@
-'''
+"""
 	AdvGAN architecture
 
 	ref: https://arxiv.org/pdf/1801.02610.pdf
-'''
+"""
 
 
 import tensorflow as tf
@@ -15,7 +15,7 @@ sys.path.append(os.getcwd())
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
-sys.path.append(os.path.join(BASE_DIR, '../'))
+sys.path.append(os.path.join(BASE_DIR, "../"))
 
 from models.generator import generator
 from models.discriminator import discriminator
@@ -52,7 +52,7 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 	# MODEL DEFINITIONS
 	is_targeted = False
 	if target in range(0, dataset.train.labels.shape[-1]):
-		print('target is: ' + str(dataset.label_names_ordered[target]))
+		print("target is: " + str(dataset.label_names_ordered[target]))
 		is_targeted = True
 
 	# gather target model
@@ -107,9 +107,9 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 	# ----------------------------------------------------------------------------------
 	# gather variables for training/restoring
 	t_vars = tf.trainable_variables()
-	f_vars = [var for var in t_vars if 'Model_A' in var.name]
-	d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='discriminator')
-	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
+	f_vars = [var for var in t_vars if "Model_A" in var.name]
+	d_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="discriminator")
+	g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope="generator")
 
 	# define optimizers for discriminator and generator
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -191,9 +191,9 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 												feed_dict={x_pl: dataset.test.data[:32], \
 														   is_training: False, \
 														   target_is_training: False})
-	print('Original Labels:\n' + str(np.argmax(dataset.test.labels[:32], axis=1)))
-	print('Original Target Model Classification:\n' + str(np.argmax(real_l, axis=1)))
-	print('Perturbed Target Model Classification:\n' + str(np.argmax(fake_l, axis=1)))
+	print("Original Labels:\n" + str(np.argmax(dataset.test.labels[:32], axis=1)))
+	print("Original Target Model Classification:\n" + str(np.argmax(real_l, axis=1)))
+	print("Perturbed Target Model Classification:\n" + str(np.argmax(fake_l, axis=1)))
 
 
 	# evaluate the test set
@@ -209,15 +209,15 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 																   target_is_training: False})
 		accs.append(acc)
 
-	print('accuracy of test set: {}'.format(sum(accs) / len(accs)))
+	print("accuracy of test set: {}".format(sum(accs) / len(accs)))
 
-	print('finished training, saving weights')
+	print("finished training, saving weights")
 	g_saver.save(sess, "weights/generator/gen.ckpt")
 	d_saver.save(sess, "weights/discriminator/disc.ckpt")
 
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 	dataset, target = parse_and_load_data()
 
 	# preprocess data
@@ -232,6 +232,3 @@ if __name__ == '__main__':
 	target_cov = np.cov(target_data, rowvar=False)
 
 	AdvGAN(dataset, target_mu, target_cov, batch_size=128, epochs=150, target=target)
-
-
-
