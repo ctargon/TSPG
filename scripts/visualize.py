@@ -37,12 +37,12 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 		tsne_data.append(perturbed[r_idxs[:num_perturbed_samples]])
 		labels_to_use.append(perturbed_label)
 		len_data.append(num_perturbed_samples)
-		labels.append('Perturbed ' + str(dataset.label_names_ordered[perturbed_label]))
+		labels.append("Perturbed " + str(dataset.label_names_ordered[perturbed_label]))
 	
 	data_t = np.vstack(tsne_data)
 	print(data_t.shape)
 
-	print('calculating tsne...')
+	print("calculating tsne...")
 	tsne = TSNE()
 	t_data = tsne.fit_transform(data_t)
 	# t_data = umap.UMAP().fit_transform(data_t)
@@ -57,20 +57,20 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 		data_separate.append(t_data[start:end])
 		start += i
 
-	print('plotting')
+	print("plotting")
 	fig, ax = plt.subplots()
 
 	colors = cm.rainbow(np.linspace(0, 1, len(labels_to_use)))
 
 	for d, c, l in zip(data_separate, colors, labels):
 		if "PERTURB" in l.upper():
-			c = 'k'
+			c = "k"
 			ax.scatter(d[:,0], d[:,1], color=c, label=l, alpha=0.25)
 			continue
 		ax.scatter(d[:,0], d[:,1], color=c, label=l, alpha=0.75)
 
 
-	ax.legend(prop={'size': 6})
+	ax.legend(prop={"size": 6})
 	ax.set_axisbelow(True)
 	ax.spines["top"].set_visible(False)
 	ax.spines["right"].set_visible(False)
@@ -78,10 +78,10 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 	ax.spines["bottom"].set_visible(False)
 	ax.get_xaxis().set_ticklabels([])
 	ax.get_yaxis().set_ticklabels([])
-	ax.xaxis.set_ticks_position('none')
-	ax.yaxis.set_ticks_position('none')
+	ax.xaxis.set_ticks_position("none")
+	ax.yaxis.set_ticks_position("none")
 	plt.subplots_adjust(right=0.7)
-	plt.grid(b=True, which='major', alpha=0.3)
+	plt.grid(b=True, which="major", alpha=0.3)
 
 	plt.show()
 
@@ -90,23 +90,23 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 
 
 
-if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='Run classification on specified dataset, \
-		subset of genes, or a random set')
-	parser.add_argument('--dataset', help='GEM to be used', type=str, required=True)
-	parser.add_argument('--gene_list', help='list of genes in dataset (same order as dataset)', \
+if __name__ == "__main__":
+	parser = argparse.ArgumentParser(description="Run classification on specified dataset, \
+		subset of genes, or a random set")
+	parser.add_argument("--dataset", help="GEM to be used", type=str, required=True)
+	parser.add_argument("--gene_list", help="list of genes in dataset (same order as dataset)", \
 		type=str, required=True)
-	parser.add_argument('--class_counts', help='json file containing number of samples per class', \
+	parser.add_argument("--class_counts", help="json file containing number of samples per class", \
 		type=str, required=True)
-	parser.add_argument('--subset_list', help='gmt/gct file containing subsets', type=str, required=False)
-	parser.add_argument('--set', help='specific subset to run', type=str, required=False)
-	parser.add_argument('--perturbed', help='index of perturbed data to load \
-											from ./data/perturbed', type=int, required=False)
+	parser.add_argument("--subset_list", help="gmt/gct file containing subsets", type=str, required=False)
+	parser.add_argument("--set", help="specific subset to run", type=str, required=False)
+	parser.add_argument("--perturbed", help="index of perturbed data to load \
+											from ./data/perturbed", type=int, required=False)
 
 	args = parser.parse_args()
 
 	# load data
-	print('loading data...')
+	print("loading data...")
 	gem = np.load(args.dataset)
 	total_gene_list = np.load(args.gene_list)
 	data = load_data(args.class_counts, gem)
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 		tot_genes = []
 		missing_genes = []
 
-		print('checking for valid genes...')
+		print("checking for valid genes...")
 		for s in subsets:
 			genes = []
 			for g in subsets[s]:
@@ -131,9 +131,9 @@ if __name__ == '__main__':
 					if g not in missing_genes:
 						missing_genes.append(g)
 			subsets[s] = genes
-					#print('missing gene ' + str(g))
-		print('missing ' + str(len(missing_genes)) + '/' + str(len(tot_genes)) + ' genes' + ' or ' \
-			 + str(int((float(len(missing_genes)) / len(tot_genes)) * 100.0)) + '% of genes')
+					#print("missing gene " + str(g))
+		print("missing " + str(len(missing_genes)) + "/" + str(len(tot_genes)) + " genes" + " or " \
+			 + str(int((float(len(missing_genes)) / len(tot_genes)) * 100.0)) + "% of genes")
 
 	if subset:
 		# dataset using only certain genes
