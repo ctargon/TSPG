@@ -1,11 +1,22 @@
 import argparse
 import matplotlib.cm as cm
-import matplotlib.pyplot as plt 
-import numpy as np 
+import matplotlib.colors as mcol
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import sklearn.manifold
 import sklearn.preprocessing
 
 import utils
+
+
+
+def cleanse_label(label):
+	label = label.replace(" ", "_")
+	label = label.replace("-", "")
+	label = label.replace("(", "")
+	label = label.replace(")", "")
+	return label
 
 
 
@@ -71,12 +82,73 @@ def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1):
 
 
 
+def plot_heatmap(df):
+	fig, ax = plt.subplots(1, len(df.columns))
+
+	# create user-defined colormap
+	cdict = {
+		"red": (
+			(0.0, 0.0, 0.0),
+			(0.25, 0.0, 0.0),
+			(0.5, 0.8, 1.0),
+			(0.75, 1.0, 1.0),
+			(1.0, 0.4, 1.0)
+		),
+		"green": (
+			(0.0, 0.0, 0.0),
+			(0.25, 0.0, 0.0),
+			(0.5, 0.9, 0.9),
+			(0.75, 0.0, 0.0),
+			(1.0, 0.0, 0.0)
+		),
+		"blue": (
+			(0.0, 0.0, 0.4),
+			(0.25, 1.0, 1.0),
+			(0.5, 1.0, 0.8),
+			(0.75, 0.0, 0.0),
+			(1.0, 0.0, 0.0)
+		)
+	}
+	blue_red = mcol.LinearSegmentedColormap("BlueRed1", cdict)
+	plt.register_cmap(name="BlueRed", cmap=blue_red) 
+
+	for i in range(len(df.columns)):
+		# get the vector, then tile it some so it is visible if very long
+		column = np.expand_dims(df[df.columns[i]], -1)
+		column = np.tile(column, (1, int(column.shape[0] / 10)))
+
+		# plot tiled vector as heatmap image
+		im = ax[i].imshow(column, cmap="BlueRed")
+		im.set_clim(-1, 1)
+
+		ax[i].set_title(df.columns[i])
+		ax[i].set_xticks([])
+		ax[i].set_xticklabels([])
+
+		# display row names if there aren't too many
+		if i == 0 and len(df.index) < 30:
+			ax[i].set_yticks(np.arange(len(df.index)))
+			ax[i].set_yticklabels(df.index)
+		else:
+			ax[i].set_yticks([])
+			ax[i].set_yticklabels([])
+
+	# insert colobar and shrink it some
+	cbar = ax[-1].figure.colorbar(im, ax=ax[-1], shrink=0.5)
+	cbar.ax.set_ylabel("Expression Level", rotation=-90, va="bottom")
+
+	plt.show()
+
+
+
 if __name__ == "__main__":
 	# parse command-line arguments
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
+	parser.add_argument("--tsne", help="plot t-SNE of samples", action="store_true")
+	parser.add_argument("--heatmap", help="plot heatmaps of sample perturbations", action="store_true")
 	parser.add_argument("--target", help="target class of perturbed data", type=int, default=-1)
 
 	args = parser.parse_args()
@@ -114,7 +186,7 @@ if __name__ == "__main__":
 	else:
 		gene_sets = []
 
-	# create t-SNE visualization for each gene set
+	# create visualizations for each gene set
 	for name, genes in gene_sets:
 		# extract dataset
 		x = df[genes]
@@ -126,10 +198,29 @@ if __name__ == "__main__":
 		# select classes to include in plot
 		class_indices = list(range(len(classes)))
 
-		# plot t-SNE visualization
-		if args.target != -1:
-			x_perturbed = np.load("perturbed_%d.npy" % (args.target))
+		# plot t-SNE visualization if specified
+		if args.tsne:
+			if args.target != -1:
+				x_perturbed = np.load("perturbed_%d.npy" % (args.target))
 
-			plot_tsne(x, y, classes, class_indices, x_perturbed, args.target)
-		else:
-			plot_tsne(x, y, classes, class_indices)
+				plot_tsne(x, y, classes, class_indices, x_perturbed, args.target)
+			else:
+				plot_tsne(x, y, classes, class_indices)
+
+		# plot heatmaps for each source-target pair if specified
+		if args.heatmap:
+			for i in range(len(classes)):
+				# load pertubation data
+				source_class = cleanse_label(classes[i])
+				target_class = cleanse_label(classes[args.target])
+				data = np.load("%s_to_%s.npy" % (source_class, target_class))
+				data = data.T
+
+				# initialize dataframe
+				df = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
+
+				# sort genes by perturbation value
+				df = df.sort_values("P", ascending=False)
+
+				# plot heatmap of perturbation data
+				plot_heatmap(df)
