@@ -1,13 +1,14 @@
-'''
+"""
 	Discriminator definition for AdvGAN
 
 	ref: https://arxiv.org/pdf/1801.02610.pdf
-'''
-
+"""
 import tensorflow as tf
 
+
+
 def discriminator(x, training):
-	with tf.variable_scope('discriminator', reuse=tf.AUTO_REUSE):
+	with tf.variable_scope("discriminator", reuse=tf.AUTO_REUSE):
 		dense1 = tf.layers.dense(inputs=x, units=512, activation=None)
 		bn_1 = tf.layers.batch_normalization(dense1, training=training)
 		# in_1 = tf.contrib.layers.instance_norm(dense1)
@@ -28,9 +29,3 @@ def discriminator(x, training):
 		probs = tf.nn.sigmoid(logits)
 
 		return logits, probs
-
-
-
-
-
-

@@ -1,10 +1,11 @@
-'''
+"""
 	Generator definition for AdvGAN
 
 	ref: https://arxiv.org/pdf/1801.02610.pdf
-'''
-
+"""
 import tensorflow as tf
+
+
 
 # helper function for convolution -> instance norm -> relu
 def DenseBatchNormRelu(x, units, training):
@@ -14,6 +15,8 @@ def DenseBatchNormRelu(x, units, training):
 	bn = tf.layers.batch_normalization(dense, training=training)
 
 	return tf.nn.relu(bn)
+
+
 
 # helper function for residual block of 2 convolutions with same num filters
 # in the same style as ConvInstNormRelu
@@ -28,8 +31,9 @@ def ResBlock(x, training, units):
 	return x + bn_2
 
 
+
 def generator(x, training):
-	with tf.variable_scope('generator', reuse=tf.AUTO_REUSE):
+	with tf.variable_scope("generator", reuse=tf.AUTO_REUSE):
 		# define first three dense + inst + relu layers
 		d1 = DenseBatchNormRelu(x, units=512, training=training)
 		d2 = DenseBatchNormRelu(d1, units=256, training=training)
@@ -50,8 +54,10 @@ def generator(x, training):
 
 		return tf.nn.tanh(out), out
 
+
+
 def generator_unet(x, training):
-	with tf.variable_scope('generator', reuse=tf.AUTO_REUSE):
+	with tf.variable_scope("generator", reuse=tf.AUTO_REUSE):
 		# define first three dense + inst + relu layers
 		d1 = DenseBatchNormRelu(x, units=512, training=training)
 		d2 = DenseBatchNormRelu(d1, units=256, training=training)
@@ -74,5 +80,3 @@ def generator_unet(x, training):
 		out = tf.layers.dense(skip3, units=x.get_shape()[-1], activation=None)
 
 		return tf.nn.tanh(out), out
-
-
