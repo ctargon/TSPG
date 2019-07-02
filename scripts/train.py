@@ -3,24 +3,19 @@
 
 	ref: https://arxiv.org/pdf/1801.02610.pdf
 """
-
-
-import tensorflow as tf
-from sklearn import preprocessing
+import argparse
 import numpy as np
-import os, sys
+import os
+import sklearn.model_selection
+import sklearn.preprocessing
+import sys
+import tensorflow as tf
 
-sys.path.append(os.path.dirname(os.getcwd()))
-sys.path.append(os.getcwd())
+import utils
+from generator import generator
+from discriminator import discriminator
+from target_models import Target_A as target_model
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(BASE_DIR)
-sys.path.append(os.path.join(BASE_DIR, "../"))
-
-from models.generator import generator
-from models.discriminator import discriminator
-from models.target_models import Target_A as target_model
-from utils.utils import parse_and_load_data
 
 
 # loss function to encourage misclassification after perturbation from carlini&wagner
@@ -31,6 +26,8 @@ def adv_loss(preds, labels, is_targeted):
 		return tf.reduce_sum(tf.maximum(0.0, other - real))
 	return tf.reduce_sum(tf.maximum(0.0, real - other))
 
+
+
 # loss function to influence the perturbation to be as close to 0 as possible
 def perturb_loss(preds, thresh=0.3, epsilon=1e-8):
 	zeros = tf.zeros((tf.shape(preds)[0]))
@@ -40,23 +37,25 @@ def perturb_loss(preds, thresh=0.3, epsilon=1e-8):
 	norm = norm + epsilon
 	return tf.reduce_mean(norm)
 
+
+
 # function that defines ops, graphs, and training procedure for AdvGAN framework
-def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
+def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 	# placeholder definitions
-	x_pl = tf.placeholder(tf.float32, [None, dataset.train.data.shape[-1]]) # data placeholder
-	t = tf.placeholder(tf.float32, [None, dataset.train.labels.shape[-1]]) # target placeholder
+	x_pl = tf.placeholder(tf.float32, [None, x_train.shape[-1]])
+	t = tf.placeholder(tf.float32, [None, y_train.shape[-1]])
 	is_training = tf.placeholder(tf.bool, [])
 	target_is_training = tf.placeholder(tf.bool, [])
 
 	#-----------------------------------------------------------------------------------
 	# MODEL DEFINITIONS
-	is_targeted = False
-	if target in range(0, dataset.train.labels.shape[-1]):
-		print("target is: " + str(dataset.label_names_ordered[target]))
+	if target != -1:
 		is_targeted = True
+	else:
+		is_targeted = False
 
 	# gather target model
-	f = target_model(n_input=dataset.train.data.shape[-1], n_classes=dataset.train.labels.shape[-1])
+	f = target_model(n_input=x_train.shape[-1], n_classes=y_train.shape[-1])
 
 	thresh = 0.3
 
@@ -96,7 +95,7 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 
 	# loss minimizing L1 distance between target class average and perturbed vector
 	# this is used to encourage realism of sample
-	target_normal = tf.placeholder(tf.float32, [None, dataset.train.data.shape[-1]])
+	target_normal = tf.placeholder(tf.float32, [None, x_train.shape[-1]])
 	l_tar_dist = tf.reduce_mean(tf.norm(target_normal - x_perturbed, axis=1, ord=1))
 
 	# weights for generator loss function
@@ -134,11 +133,12 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 		print("make sure to train the target model first...")
 		sys.exit(1)
 
-	total_batches = int(dataset.train.num_examples / batch_size)
+	total_batches = int(len(y_train) / batch_size)
 
 	for epoch in range(0, epochs):
+		# shuffle training data
+		x_train, y_train = utils.shuffle(x_train, y_train)
 
-		dataset.shuffle()
 		loss_D_sum = 0.0
 		loss_G_fake_sum = 0.0
 		loss_perturb_sum = 0.0
@@ -149,67 +149,83 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 		target_normal_np = np.clip(target_normal_np, 0, 1)
 	
 		for i in range(total_batches):
-			batch_x, batch_y = dataset.train.next_batch(batch_size, i)
+			# extract batch
+			batch_x, batch_y = utils.next_batch(x_train, y_train, batch_size, i)
 
 			# if targeted, create one hot vectors of the target
 			if is_targeted:
 				targets = np.full((batch_y.shape[0],), target)
-				batch_y = np.eye(dataset.train.labels.shape[-1])[targets]
+				batch_y = np.eye(y_train.shape[-1])[targets]
 
 			# train the discriminator first n times
 			for _ in range(1):
-				_, loss_D_batch = sess.run([d_opt, d_loss], feed_dict={x_pl: batch_x, 
-																	   target_normal: target_normal_np,
-																	   is_training: True})
+				_, loss_D_batch = sess.run([d_opt, d_loss], feed_dict={
+					x_pl: batch_x, 
+					target_normal: target_normal_np,
+					is_training: True
+				})
 
 			# train the generator n times
 			for _ in range(1):
 				_, loss_G_fake_batch, loss_adv_batch, loss_perturb_batch, loss_target_batch = \
-									sess.run([g_opt, g_loss_fake, l_adv, l_perturb, l_tar_dist], 
-												feed_dict={x_pl: batch_x, 
-														   t: batch_y, 
-														   target_normal: target_normal_np,
-														   is_training: True, 
-														   target_is_training: False})
+					sess.run([g_opt, g_loss_fake, l_adv, l_perturb, l_tar_dist], feed_dict={
+						x_pl: batch_x, 
+						t: batch_y, 
+						target_normal: target_normal_np,
+						is_training: True, 
+						target_is_training: False
+					})
+
 			loss_D_sum += loss_D_batch
 			loss_G_fake_sum += loss_G_fake_batch
 			loss_perturb_sum += loss_perturb_batch
 			loss_adv_sum += loss_adv_batch
 			loss_target_norm += loss_target_batch
 
-		print("epoch %d:\nloss_D: %.3f, loss_G_fake: %.3f, \
-				\nloss_perturb: %.3f, loss_adv: %.3f, \n loss_tar_norm: %.3f \n" %
-				(epoch + 1, loss_D_sum/total_batches, loss_G_fake_sum/total_batches,
-				loss_perturb_sum/total_batches, loss_adv_sum/total_batches, loss_target_norm/total_batches))
+		print("epoch %d:\n\
+				loss_D: %.3f, loss_G_fake: %.3f\n\
+				loss_perturb: %.3f, loss_adv: %.3f\n\
+				loss_tar_norm: %.3f\n" % (
+			epoch + 1,
+			loss_D_sum / total_batches,
+			loss_G_fake_sum / total_batches,
+			loss_perturb_sum / total_batches,
+			loss_adv_sum / total_batches,
+			loss_target_norm / total_batches
+		))
 
 		if epoch % 10 == 0:
 			g_saver.save(sess, "weights/generator/gen.ckpt")
 			d_saver.save(sess, "weights/discriminator/disc.ckpt")
 
 	# quick sample to see some outputs
-	rawpert, pert, fake_l, real_l = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], \
-												feed_dict={x_pl: dataset.test.data[:32], \
-														   is_training: False, \
-														   target_is_training: False})
-	print("Original Labels:\n" + str(np.argmax(dataset.test.labels[:32], axis=1)))
+	rawpert, pert, fake_l, real_l = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], feed_dict={
+		x_pl: x_test[:32],
+		is_training: False,
+		target_is_training: False
+	})
+
+	print("Original Labels:\n" + str(np.argmax(y_test[:32], axis=1)))
 	print("Original Target Model Classification:\n" + str(np.argmax(real_l, axis=1)))
 	print("Perturbed Target Model Classification:\n" + str(np.argmax(fake_l, axis=1)))
-
 
 	# evaluate the test set
 	correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(t, 1))
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-	accs = []
-	total_batches_test = int(dataset.test.num_examples / batch_size)
-	for i in range(total_batches_test):
-		batch_x, batch_y = dataset.test.next_batch(batch_size, i)
-		acc, x_pert = sess.run([accuracy, x_perturbed], feed_dict={x_pl: batch_x, \
-																   t: batch_y, \
-																   is_training: False, \
-																   target_is_training: False})
-		accs.append(acc)
+	scores = []
+	total_batches_test = int(len(y_test) / batch_size)
 
-	print("accuracy of test set: {}".format(sum(accs) / len(accs)))
+	for i in range(total_batches_test):
+		batch_x, batch_y = utils.next_batch(x_test, y_test, batch_size, i)
+		score, x_pert = sess.run([accuracy, x_perturbed], feed_dict={
+			x_pl: batch_x,
+			t: batch_y,
+			is_training: False,
+			target_is_training: False
+		})
+		scores.append(score)
+
+	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
 
 	print("finished training, saving weights")
 	g_saver.save(sess, "weights/generator/gen.ckpt")
@@ -218,17 +234,65 @@ def AdvGAN(dataset, t_mu, t_cov, epochs=50, batch_size=32, target=-1):
 
 
 if __name__ == "__main__":
-	dataset, target = parse_and_load_data()
+	# parse command-line arguments
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
+	parser.add_argument("--labels", help="list of sample labels", required=True)
+	parser.add_argument("--gene-sets", help="list of curated gene sets")
+	parser.add_argument("--target", help="target class", type=int, default=-1)
 
-	# preprocess data
-	scaler = preprocessing.MinMaxScaler() #preprocessing.MaxAbsScaler()
-	dataset.train.data = scaler.fit_transform(dataset.train.data)
-	dataset.test.data = scaler.fit_transform(dataset.test.data)
+	args = parser.parse_args()
 
-	# get mu and sigma of target class feature vectors
-	t_idxs = np.where(target == np.argmax(dataset.train.labels, axis=1))
-	target_data = dataset.train.data[t_idxs]
-	target_mu = np.mean(target_data, axis=0)
-	target_cov = np.cov(target_data, rowvar=False)
+	# load input data
+	print("loading input dataset...")
 
-	AdvGAN(dataset, target_mu, target_cov, batch_size=128, epochs=150, target=target)
+	df = utils.load_dataframe(args.dataset)
+	df_samples = df.index
+	df_genes = df.columns
+
+	labels, classes = utils.load_labels(args.labels)
+
+	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
+
+	# print target class if specified
+	if args.target != -1:
+		print("targeting class \'%s\'" % (classes[args.target]))
+
+	# load gene sets file if it was provided
+	if args.gene_sets != None:
+		print("loading gene sets...")
+
+		gene_sets = utils.load_gene_sets(args.gene_sets)
+
+		print("loaded %d gene sets" % (len(gene_sets)))
+
+		# remove genes which do not exist in the dataset
+		genes = list(set(sum([genes for (name, genes) in gene_sets], [])))
+		missing_genes = [g for g in genes if g not in df_genes]
+
+		gene_sets = [(name, [g for g in genes if g in df_genes]) for (name, genes) in gene_sets]
+
+		print("%d / %d genes from gene sets were not found in the input dataset" % (len(missing_genes), len(genes)))
+	else:
+		gene_sets = []
+
+	# train a model for each gene set
+	for name, genes in gene_sets:
+		# extract dataset
+		X = df[genes]
+		y = utils.onehot_encode(labels, classes)
+
+		# create train/test sets
+		x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.3)
+
+		# normalize dataset
+		Scaler = sklearn.preprocessing.MinMaxScaler
+		x_train = Scaler().fit_transform(x_train)
+		x_test = Scaler().fit_transform(x_test)
+
+		# get mu and sigma of target class feature vectors
+		target_data = x_train[np.argmax(y_train, axis=1) == args.target]
+		target_mu = np.mean(target_data, axis=0)
+		target_cov = np.cov(target_data, rowvar=False)
+
+		AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target)
