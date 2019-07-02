@@ -155,7 +155,7 @@ def attack(x_train, y_train, target=-1, batch_size=64):
 	print(p[0])
 	print(x_p[0])
 
-	np.save("perturbed_%s.npy" % (target), np.array(x_pert))
+	np.save("perturbed_%s.npy" % (target), np.vstack(x_pert))
 
 	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
 

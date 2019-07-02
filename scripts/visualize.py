@@ -1,74 +1,59 @@
-#
-# script to use tsne to visualize results
-#
-
-from sklearn.manifold import TSNE 
-import numpy as np 
-import matplotlib.pyplot as plt 
-import matplotlib.cm as cm
-from sklearn import preprocessing
 import argparse
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt 
+import numpy as np 
+import sklearn.manifold
+import sklearn.preprocessing
 
-import umap
-
-from utils import load_data, read_subset_file
-from dataset import DataContainer as DC
-
-# DATASET: datacontainer type holding RNAseq data
-# LABELS_TO_USE: list of integer indices for classes to include
-def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
-	tsne_data = []
-	labels = []
-	len_data = []
-
-	np.set_printoptions(precision=4, suppress=True)
-
-	for l in labels_to_use:
-		indices = np.where(np.argmax(dataset.train.labels,axis=1) == l)[0]
-		len_data.append(indices.shape[0])
-		tsne_data.append(dataset.train.data[indices])
-		labels.append(str(dataset.label_names_ordered[l]))
+import utils
 
 
-	if (perturbed is not None):
-		num_perturbed_samples = 100
-		r_idxs = np.arange(perturbed.shape[0])
-		np.random.shuffle(r_idxs)
-		tsne_data.append(perturbed[r_idxs[:num_perturbed_samples]])
-		labels_to_use.append(perturbed_label)
-		len_data.append(num_perturbed_samples)
-		labels.append("Perturbed " + str(dataset.label_names_ordered[perturbed_label]))
-	
-	data_t = np.vstack(tsne_data)
-	print(data_t.shape)
 
-	print("calculating tsne...")
-	tsne = TSNE()
-	t_data = tsne.fit_transform(data_t)
-	# t_data = umap.UMAP().fit_transform(data_t)
+def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1):
+	# extract data for each class into separate arrays
+	tsne_n = []
+	tsne_x = []
+	tsne_y = []
 
-	data_separate = []
+	for class_index in class_indices:
+		indices = (y == class_index)
+		tsne_n.append(len(x[indices]))
+		tsne_x.append(x[indices])
+		tsne_y.append(classes[class_index])
+
+	# append perturbed data if it was provided
+	if x_perturbed is not None:
+		n_perturbed = 100
+		indices = np.arange(len(x_perturbed))
+		np.random.shuffle(indices)
+		class_indices.append(y_perturbed)
+		tsne_n.append(n_perturbed)
+		tsne_x.append(x_perturbed[indices[0:n_perturbed]])
+		tsne_y.append("%s (perturbed)" % (classes[y_perturbed]))
+
+	# perform t-SNE on merged data
+	x_tsne = np.vstack(tsne_x)
+	x_tsne = sklearn.manifold.TSNE().fit_transform(x_tsne)
+
+	# separate embedded data back into separate arrays
+	tsne_x = []
 	start = 0
-	total = 0
-	print(t_data.shape)
-	print(len_data)
-	for i in len_data:
-		end = start + i
-		data_separate.append(t_data[start:end])
-		start += i
+	for n in tsne_n:
+		tsne_x.append(x_tsne[start:(start + n)])
+		start += n
 
-	print("plotting")
+	# plot t-SNE embedding by class
 	fig, ax = plt.subplots()
+	colors = cm.rainbow(np.linspace(0, 1, len(class_indices)))
 
-	colors = cm.rainbow(np.linspace(0, 1, len(labels_to_use)))
-
-	for d, c, l in zip(data_separate, colors, labels):
-		if "PERTURB" in l.upper():
+	for x, y, c in zip(tsne_x, tsne_y, colors):
+		if "(perturbed)" in y:
 			c = "k"
-			ax.scatter(d[:,0], d[:,1], color=c, label=l, alpha=0.25)
-			continue
-		ax.scatter(d[:,0], d[:,1], color=c, label=l, alpha=0.75)
+			alpha = 0.25
+		else:
+			alpha = 0.75
 
+		ax.scatter(x[:, 0], x[:, 1], label=y, color=c, alpha=alpha)
 
 	ax.legend(prop={"size": 6})
 	ax.set_axisbelow(True)
@@ -82,83 +67,69 @@ def tsne_viz(dataset, labels_to_use, perturbed=None, perturbed_label=-1):
 	ax.yaxis.set_ticks_position("none")
 	plt.subplots_adjust(right=0.7)
 	plt.grid(b=True, which="major", alpha=0.3)
-
 	plt.show()
 
 
 
-
-
-
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Run classification on specified dataset, \
-		subset of genes, or a random set")
-	parser.add_argument("--dataset", help="GEM to be used", type=str, required=True)
-	parser.add_argument("--gene_list", help="list of genes in dataset (same order as dataset)", \
-		type=str, required=True)
-	parser.add_argument("--class_counts", help="json file containing number of samples per class", \
-		type=str, required=True)
-	parser.add_argument("--subset_list", help="gmt/gct file containing subsets", type=str, required=False)
-	parser.add_argument("--set", help="specific subset to run", type=str, required=False)
-	parser.add_argument("--perturbed", help="index of perturbed data to load \
-											from ./data/perturbed", type=int, required=False)
+	# parse command-line arguments
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
+	parser.add_argument("--labels", help="list of sample labels", required=True)
+	parser.add_argument("--gene-sets", help="list of curated gene sets")
+	parser.add_argument("--target", help="target class of perturbed data", type=int, default=-1)
 
 	args = parser.parse_args()
 
-	# load data
-	print("loading data...")
-	gem = np.load(args.dataset)
-	total_gene_list = np.load(args.gene_list)
-	data = load_data(args.class_counts, gem)
+	# load input data
+	print("loading input dataset...")
 
-	subset = args.set
+	df = utils.load_dataframe(args.dataset)
+	df_samples = df.index
+	df_genes = df.columns
 
-	if subset:
-		subsets = read_subset_file(args.subset_list)
+	labels, classes = utils.load_labels(args.labels)
 
-		tot_genes = []
-		missing_genes = []
+	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
 
-		print("checking for valid genes...")
-		for s in subsets:
-			genes = []
-			for g in subsets[s]:
-				if g not in tot_genes:
-					tot_genes.append(g)
-				if g in total_gene_list:
-					genes.append(g)
-				else:
-					if g not in missing_genes:
-						missing_genes.append(g)
-			subsets[s] = genes
-					#print("missing gene " + str(g))
-		print("missing " + str(len(missing_genes)) + "/" + str(len(tot_genes)) + " genes" + " or " \
-			 + str(int((float(len(missing_genes)) / len(tot_genes)) * 100.0)) + "% of genes")
+	# print target class if specified
+	if args.target != -1:
+		print("target class is: %s" % (classes[args.target]))
 
-	if subset:
-		# dataset using only certain genes
-		dataset = DC(data, total_gene_list, subsets[subset.upper()], train_split=100, test_split=0)
+	# load gene sets file if it was provided
+	if args.gene_sets != None:
+		print("loading gene sets...")
+
+		gene_sets = utils.load_gene_sets(args.gene_sets)
+
+		print("loaded %d gene sets" % (len(gene_sets)))
+
+		# remove genes which do not exist in the dataset
+		genes = list(set(sum([genes for (name, genes) in gene_sets], [])))
+		missing_genes = [g for g in genes if g not in df_genes]
+
+		gene_sets = [(name, [g for g in genes if g in df_genes]) for (name, genes) in gene_sets]
+
+		print("%d / %d genes from gene sets were not found in the input dataset" % (len(missing_genes), len(genes)))
 	else:
-		# dataset using every gene
-		dataset = DC(data, total_gene_list, train_split=100, test_split=0)
+		gene_sets = []
 
-	# preprocess data
-	scaler = preprocessing.MinMaxScaler() #preprocessing.MaxAbsScaler()
-	dataset.train.data = scaler.fit_transform(dataset.train.data)
-	#dataset.test.data = scaler.fit_transform(dataset.test.data)
+	# create t-SNE visualization for each gene set
+	for name, genes in gene_sets:
+		# extract dataset
+		x = df[genes]
+		y = labels
 
-	rand_idxs = np.arange(0, dataset.num_classes)
-	np.random.shuffle(rand_idxs)
-	rand_idxs = list(rand_idxs[:10])
+		# normalize dataset
+		x = sklearn.preprocessing.MinMaxScaler().fit_transform(x)
 
-	if args.perturbed:
-		pert_idx = args.perturbed
-		if pert_idx not in rand_idxs:
-			rand_idxs.pop()
-			rand_idxs.append(pert_idx)
+		# select classes to include in plot
+		class_indices = list(range(len(classes)))
 
-		perturbed = np.load("./data/perturbed/perturbed_" + str(pert_idx) + ".npy")
+		# plot t-SNE visualization
+		if args.target != -1:
+			x_perturbed = np.load("perturbed_%d.npy" % (args.target))
 
-		tsne_viz(dataset, rand_idxs, perturbed, pert_idx)
-	else:
-		tsne_viz(dataset, arange(dataset.num_classes))
+			plot_tsne(x, y, classes, class_indices, x_perturbed, args.target)
+		else:
+			plot_tsne(x, y, classes, class_indices)

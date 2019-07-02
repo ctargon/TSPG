@@ -27,3 +27,11 @@ python scripts/attack.py \
 	--labels     example_labels.txt \
 	--gene-sets  example_genesets.txt \
 	--target     0
+
+# create t-SNE visualizations of perturbed samples for each gene set
+python scripts/visualize.py \
+	--dataset    example_data.txt \
+	--labels     example_labels.txt \
+	--gene-sets  example_genesets.txt \
+	--target     0
+	
