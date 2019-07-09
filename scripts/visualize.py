@@ -20,7 +20,7 @@ def cleanse_label(label):
 
 
 
-def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1):
+def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1, output_dir="."):
 	# extract data for each class into separate arrays
 	tsne_n = []
 	tsne_x = []
@@ -78,11 +78,13 @@ def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1):
 	ax.yaxis.set_ticks_position("none")
 	plt.subplots_adjust(right=0.7)
 	plt.grid(b=True, which="major", alpha=0.3)
-	plt.show()
+
+	plt.savefig("%s/tsne.png" % (output_dir))
+	plt.close()
 
 
 
-def plot_heatmap(df):
+def plot_heatmap(df, source_class, target_class, output_dir="."):
 	fig, ax = plt.subplots(1, len(df.columns))
 
 	# create user-defined colormap
@@ -115,7 +117,7 @@ def plot_heatmap(df):
 	for i in range(len(df.columns)):
 		# get the vector, then tile it some so it is visible if very long
 		column = np.expand_dims(df[df.columns[i]], -1)
-		column = np.tile(column, (1, int(column.shape[0] / 10)))
+		column = np.tile(column, (1, max(1, int(column.shape[0] / 10))))
 
 		# plot tiled vector as heatmap image
 		im = ax[i].imshow(column, cmap="BlueRed")
@@ -137,7 +139,8 @@ def plot_heatmap(df):
 	cbar = ax[-1].figure.colorbar(im, ax=ax[-1], shrink=0.5)
 	cbar.ax.set_ylabel("Expression Level", rotation=-90, va="bottom")
 
-	plt.show()
+	plt.savefig("%s/%s_to_%s.png" % (output_dir, source_class, target_class))
+	plt.close()
 
 
 
@@ -150,6 +153,7 @@ if __name__ == "__main__":
 	parser.add_argument("--tsne", help="plot t-SNE of samples", action="store_true")
 	parser.add_argument("--heatmap", help="plot heatmaps of sample perturbations", action="store_true")
 	parser.add_argument("--target", help="target class of perturbed data", type=int, default=-1)
+	parser.add_argument("--output-dir", help="Output directory", default=".")
 
 	args = parser.parse_args()
 
@@ -188,6 +192,9 @@ if __name__ == "__main__":
 
 	# create visualizations for each gene set
 	for name, genes in gene_sets:
+		# initialize output directory
+		output_dir = "%s/%s" % (args.output_dir, name)
+
 		# extract dataset
 		x = df[genes]
 		y = labels
@@ -201,11 +208,11 @@ if __name__ == "__main__":
 		# plot t-SNE visualization if specified
 		if args.tsne:
 			if args.target != -1:
-				x_perturbed = np.load("perturbed_%d.npy" % (args.target))
+				x_perturbed = np.load("%s/perturbed_%d.npy" % (output_dir, args.target))
 
-				plot_tsne(x, y, classes, class_indices, x_perturbed, args.target)
+				plot_tsne(x, y, classes, class_indices, x_perturbed, args.target, output_dir=output_dir)
 			else:
-				plot_tsne(x, y, classes, class_indices)
+				plot_tsne(x, y, classes, class_indices, output_dir=output_dir)
 
 		# plot heatmaps for each source-target pair if specified
 		if args.heatmap:
@@ -213,14 +220,14 @@ if __name__ == "__main__":
 				# load pertubation data
 				source_class = cleanse_label(classes[i])
 				target_class = cleanse_label(classes[args.target])
-				data = np.load("%s_to_%s.npy" % (source_class, target_class))
+				data = np.load("%s/%s_to_%s.npy" % (output_dir, source_class, target_class))
 				data = data.T
 
 				# initialize dataframe
-				df = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
+				df_pert = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
 
 				# sort genes by perturbation value
-				df = df.sort_values("P", ascending=False)
+				df_pert = df_pert.sort_values("P", ascending=False)
 
 				# plot heatmap of perturbation data
-				plot_heatmap(df)
+				plot_heatmap(df_pert, source_class, target_class, output_dir=output_dir)

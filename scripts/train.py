@@ -5,7 +5,6 @@
 """
 import argparse
 import numpy as np
-import os
 import sklearn.model_selection
 import sklearn.preprocessing
 import sys
@@ -39,7 +38,9 @@ def perturb_loss(preds, epsilon=1e-8):
 
 
 # function that defines ops, graphs, and training procedure for AdvGAN framework
-def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, batch_size=32):
+def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, batch_size=32, output_dir="."):
+	tf.reset_default_graph()
+
 	# placeholder definitions
 	x_pl = tf.placeholder(tf.float32, [None, x_train.shape[-1]])
 	y_pl = tf.placeholder(tf.float32, [None, y_train.shape[-1]])
@@ -118,14 +119,14 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	g_saver = tf.train.Saver(g_vars)
 	d_saver = tf.train.Saver(d_vars)
 
-	init  = tf.global_variables_initializer()
+	init = tf.global_variables_initializer()
 
-	sess  = tf.Session()
+	sess = tf.Session()
 	sess.run(init)
 
 	# load the pretrained target model
 	try:
-		saver.restore(sess, tf.train.latest_checkpoint("./weights/target_model/Model_A/"))
+		saver.restore(sess, tf.train.latest_checkpoint("%s/target_model" % (output_dir)))
 	except:
 		print("make sure to train the target model first...")
 		sys.exit(1)
@@ -192,8 +193,8 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 		print()
 
 		if epoch % 10 == 0:
-			g_saver.save(sess, "weights/generator/gen.ckpt")
-			d_saver.save(sess, "weights/discriminator/disc.ckpt")
+			g_saver.save(sess, "%s/generator/generator.ckpt" % (output_dir))
+			d_saver.save(sess, "%s/discriminator/discriminator.ckpt" % (output_dir))
 
 	# quick sample to see some outputs
 	rawpert, pert, fake_l, real_l = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], feed_dict={
@@ -228,8 +229,8 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
 
 	print("finished training, saving weights")
-	g_saver.save(sess, "weights/generator/gen.ckpt")
-	d_saver.save(sess, "weights/discriminator/disc.ckpt")
+	g_saver.save(sess, "%s/generator/generator.ckpt" % (output_dir))
+	d_saver.save(sess, "%s/discriminator/discriminator.ckpt" % (output_dir))
 
 
 
@@ -240,6 +241,7 @@ if __name__ == "__main__":
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--target", help="target class", type=int, default=-1)
+	parser.add_argument("--output-dir", help="Output directory", default=".")
 
 	args = parser.parse_args()
 
@@ -278,6 +280,9 @@ if __name__ == "__main__":
 
 	# train a model for each gene set
 	for name, genes in gene_sets:
+		# initialize output directory
+		output_dir = "%s/%s" % (args.output_dir, name)
+
 		# extract dataset
 		X = df[genes]
 		y = utils.onehot_encode(labels, range(len(classes)))
@@ -295,4 +300,4 @@ if __name__ == "__main__":
 		target_mu = np.mean(target_data, axis=0)
 		target_cov = np.cov(target_data, rowvar=False)
 
-		AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target)
+		AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=output_dir)

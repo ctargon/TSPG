@@ -17,17 +17,19 @@ import utils
 
 class Target:
 	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256,\
-					restore=0):
+					output_dir="."):
 		self.lr = lr
 		self.epochs = epochs
 		self.n_input = n_input
 		self.n_classes = n_classes
 		self.batch_size = batch_size
-		self.restore = restore
+		self.output_dir = output_dir
 
 		os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 	def train_model(self, x_train, y_train, model_name):
+		tf.reset_default_graph()
+
 		# define placeholders for input data
 		x = tf.placeholder(tf.float32, [None, self.n_input])
 		y = tf.placeholder(tf.float32, [None, self.n_classes])
@@ -52,22 +54,21 @@ class Target:
 		sess = tf.Session()
 		sess.run(init)
 
-		for epoch in range(1, self.epochs + 1):
+		for epoch in range(self.epochs):
 			avg_cost = 0.
-			total_batch = int(len(x_train) / self.batch_size)
+			n_batches = int(len(x_train) / self.batch_size)
 
-			for i in range(total_batch):
+			for i in range(n_batches):
 				batch_x, batch_y = utils.next_batch(x_train, y_train, self.batch_size, i)
 				
 				_, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y, training: True})
 
-				avg_cost += c / total_batch
+				avg_cost += c / n_batches
 
-			print("Epoch: %04d, cost=%f" % (epoch, avg_cost))
+			print("Epoch: %04d, cost=%f" % (epoch + 1, avg_cost))
 
-		path = "./weights/target_model/%s" % (model_name)
-		if (not os.path.isdir(path)):
-			os.makedirs(path)
+		path = "%s/target_model" % (self.output_dir)
+		os.makedirs(path, exist_ok=True)
 
 		saver.save(sess, "%s/%s.ckpt" % (path, model_name))
 		sess.close() 
@@ -83,7 +84,7 @@ class Target:
 
 		saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=model_name))
 		sess = tf.Session()
-		saver.restore(sess, "./weights/target_model/%s/%s.ckpt" % (model_name, model_name))
+		saver.restore(sess, "%s/target_model/%s.ckpt" % (self.output_dir, model_name))
 
 		# Test model
 		correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
@@ -92,8 +93,8 @@ class Target:
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 		scores = []
 
-		total_test_batch = int(len(x_test) / self.batch_size)
-		for i in range(total_test_batch):
+		n_batches = int(len(x_test) / self.batch_size)
+		for i in range(n_batches):
 			batch_x, batch_y = utils.next_batch(x_test, y_test, self.batch_size, i)
 			score, prob = sess.run([accuracy, probs], {x: batch_x, y: batch_y, training: False})
 			scores.append(score)
@@ -104,9 +105,9 @@ class Target:
 
 
 class Target_A(Target):
-	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256,\
-					restore=0):
-		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, restore)
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, \
+					output_dir="."):
+		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, output_dir)
 
 	# USAGE:
 	# 		- encoder network for vae
@@ -134,9 +135,9 @@ class Target_A(Target):
 
 
 class Target_B(Target):
-	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256,\
-					restore=0):
-		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, restore)
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, \
+					output_dir="."):
+		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, output_dir)
 
 	# USAGE:
 	# 		- encoder network for vae
@@ -169,9 +170,9 @@ class Target_B(Target):
 
 
 class Target_C(Target):
-	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256,\
-					restore=0):
-		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, restore)
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, \
+					output_dir="."):
+		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, output_dir)
 
 	# USAGE:
 	# 		- encoder network for vae
@@ -210,11 +211,12 @@ class Target_C(Target):
 
 
 if __name__ == "__main__":
-	#Parse Arguments
+	# parse command-line arguments
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
+	parser.add_argument("--output-dir", help="Output directory", default=".")
 
 	args = parser.parse_args()
 
@@ -249,6 +251,9 @@ if __name__ == "__main__":
 
 	# train a model for each gene set
 	for name, genes in gene_sets:
+		# initialize output directory
+		output_dir = "%s/%s" % (args.output_dir, name)
+
 		# extract dataset
 		X = df[genes]
 		y = utils.onehot_encode(labels, classes)
@@ -261,6 +266,6 @@ if __name__ == "__main__":
 		x_train = Scaler().fit_transform(x_train)
 		x_test = Scaler().fit_transform(x_test)
 
-		mlp = Target_A(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=128)
-		mlp.train(x_train, y_train)
-		mlp.inference(x_test, y_test)
+		clf = Target_A(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=128, output_dir=output_dir)
+		clf.train(x_train, y_train)
+		clf.inference(x_test, y_test)

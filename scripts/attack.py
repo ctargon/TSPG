@@ -21,7 +21,7 @@ def cleanse_label(label):
 
 
 
-def attack_source_target(x, y, classes, source, target, target_mu):
+def attack_source_target(x, y, classes, source, target, target_mu, output_dir="."):
 	source_indices = np.where(np.argmax(y, axis=1) == source)
 	x_source = x[source_indices]
 	y_source = y[source_indices]
@@ -56,8 +56,8 @@ def attack_source_target(x, y, classes, source, target, target_mu):
 	# load checkpoints
 	f_saver = tf.train.Saver(f_vars)
 	g_saver = tf.train.Saver(g_vars)
-	f_saver.restore(sess, tf.train.latest_checkpoint("./weights/target_model/Model_A/"))
-	g_saver.restore(sess, tf.train.latest_checkpoint("./weights/generator/"))
+	f_saver.restore(sess, tf.train.latest_checkpoint("%s/target_model/" % (output_dir)))
+	g_saver.restore(sess, tf.train.latest_checkpoint("%s/generator/" % (output_dir)))
 
 	if is_targeted:
 		targets = np.full((y_source.shape[0],), target)
@@ -86,11 +86,13 @@ def attack_source_target(x, y, classes, source, target, target_mu):
 	source_class = cleanse_label(classes[source])
 	target_class = cleanse_label(classes[target])
 
-	np.save("%s_to_%s.npy" % (source_class, target_class), results)
+	np.save("%s/%s_to_%s.npy" % (output_dir, source_class, target_class), results)
 
 
 
-def attack(x_train, y_train, target=-1, batch_size=64):
+def attack(x_train, y_train, target=-1, batch_size=64, output_dir="."):
+	tf.reset_default_graph()
+
 	x_pl = tf.placeholder(tf.float32, [None, x_train.shape[-1]])
 	y_pl = tf.placeholder(tf.float32, [None, y_train.shape[-1]])
 	is_training = tf.placeholder(tf.bool, [])
@@ -121,8 +123,8 @@ def attack(x_train, y_train, target=-1, batch_size=64):
 	# load checkpoints
 	f_saver = tf.train.Saver(f_vars)
 	g_saver = tf.train.Saver(g_vars)
-	f_saver.restore(sess, tf.train.latest_checkpoint("./weights/target_model/Model_A/"))
-	g_saver.restore(sess, tf.train.latest_checkpoint("./weights/generator/"))
+	f_saver.restore(sess, tf.train.latest_checkpoint("%s/target_model/" % (output_dir)))
+	g_saver.restore(sess, tf.train.latest_checkpoint("%s/generator/" % (output_dir)))
 
 	# calculate accuracy of target model on perturbed data
 	correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(y_pl, 1))
@@ -155,7 +157,7 @@ def attack(x_train, y_train, target=-1, batch_size=64):
 	print(p[0])
 	print(x_p[0])
 
-	np.save("perturbed_%s.npy" % (target), np.vstack(x_pert))
+	np.save("%s/perturbed_%s.npy" % (output_dir, target), np.vstack(x_pert))
 
 	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
 
@@ -168,6 +170,7 @@ if __name__ == "__main__":
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--target", help="target class", type=int, default=-1)
+	parser.add_argument("--output-dir", help="Output directory", default=".")
 
 	args = parser.parse_args()
 
@@ -206,6 +209,9 @@ if __name__ == "__main__":
 
 	# perform attack for each gene set
 	for name, genes in gene_sets:
+		# initialize output directory
+		output_dir = "%s/%s" % (args.output_dir, name)
+
 		# extract dataset
 		x = df[genes]
 		y = utils.onehot_encode(labels, range(len(classes)))
@@ -218,8 +224,8 @@ if __name__ == "__main__":
 		target_mu = np.mean(target_data, axis=0)
 
 		# perform attack
-		attack(x, y, target=args.target)
+		attack(x, y, target=args.target, output_dir=output_dir)
 
 		# perform source-to-target attack for each source class
 		for i in range(len(classes)):
-			attack_source_target(x, y, classes, i, args.target, target_mu)
+			attack_source_target(x, y, classes, i, args.target, target_mu, output_dir=output_dir)
