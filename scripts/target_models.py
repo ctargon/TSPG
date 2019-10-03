@@ -216,6 +216,7 @@ if __name__ == "__main__":
 	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
+	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--output-dir", help="Output directory", default=".")
 
 	args = parser.parse_args()
@@ -240,32 +241,33 @@ if __name__ == "__main__":
 		print("loaded %d gene sets" % (len(gene_sets)))
 
 		# remove genes which do not exist in the dataset
-		genes = list(set(sum([genes for (name, genes) in gene_sets], [])))
+		genes = list(set(sum([gene_sets[name] for name in gene_sets.keys()], [])))
 		missing_genes = [g for g in genes if g not in df_genes]
 
-		gene_sets = [(name, [g for g in genes if g in df_genes]) for (name, genes) in gene_sets]
+		gene_sets = {name: [g for g in genes if g in df_genes] for name, genes in gene_sets.items()}
 
 		print("%d / %d genes from gene sets were not found in the input dataset" % (len(missing_genes), len(genes)))
 	else:
-		gene_sets = []
+		gene_sets = {"all_genes": df_genes}
 
 	# train a model for each gene set
-	for name, genes in gene_sets:
-		# initialize output directory
-		output_dir = "%s/%s" % (args.output_dir, name)
+	name = args.set
+	genes = gene_sets[name]
+	# initialize output directory
+	output_dir = "%s/%s" % (args.output_dir, name)
 
-		# extract dataset
-		X = df[genes]
-		y = utils.onehot_encode(labels, classes)
+	# extract dataset
+	X = df[genes]
+	y = utils.onehot_encode(labels, classes)
 
-		# create train/test sets
-		x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.3)
+	# create train/test sets
+	x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.9)
 
-		# normalize dataset
-		Scaler = sklearn.preprocessing.MinMaxScaler
-		x_train = Scaler().fit_transform(x_train)
-		x_test = Scaler().fit_transform(x_test)
+	# normalize dataset
+	Scaler = sklearn.preprocessing.MinMaxScaler
+	x_train = Scaler().fit_transform(x_train)
+	x_test = Scaler().fit_transform(x_test)
 
-		clf = Target_A(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=128, output_dir=output_dir)
-		clf.train(x_train, y_train)
-		clf.inference(x_test, y_test)
+	clf = Target_A(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=128, output_dir=output_dir)
+	clf.train(x_train, y_train)
+	clf.inference(x_test, y_test)

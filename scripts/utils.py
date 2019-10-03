@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import sklearn.preprocessing
 import sys
+import re
 
 
 
@@ -18,7 +19,10 @@ def load_dataframe(filename):
 
 	if ext == "txt":
 		# load dataframe from plaintext file
-		return pd.read_csv(filename, index_col=0, sep="\t")
+		df = pd.read_csv(filename, index_col=0, sep="\t")
+		if df.isnull().any().any():
+			df.fillna(value=0, inplace=True)
+		return df
 	elif ext == "npy":
 		# load data matrix from binary file
 		X = np.load(filename)
@@ -71,12 +75,10 @@ def load_labels(filename):
 def load_gene_sets(filename):
 	# load file into list
 	lines = [line.strip() for line in open(filename, "r")]
-	lines = [line.split("\t") for line in lines]
+	lines = [re.split(r'[\s,]+', line) for line in lines] 
 
 	# map each gene set into a tuple of the name and genes in the set
-	gene_sets = [(line[0], line[1:]) for line in lines]
-
-	return gene_sets
+	return {line[0]: line[1:] for line in lines}
 
 
 
