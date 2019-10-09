@@ -18,6 +18,7 @@ python scripts/target_models.py \
 	--dataset    example_data.txt \
 	--labels     example_labels.txt \
 	--gene-sets  example_genesets.txt \
+	--set gene-set-000 \
 	--output-dir $OUTPUT_DIR
 
 # train AdvGAN on a gene set
@@ -25,6 +26,7 @@ python scripts/train.py \
 	--dataset    example_data.txt \
 	--labels     example_labels.txt \
 	--gene-sets  example_genesets.txt \
+	--set gene-set-000 \
 	--target     0 \
 	--output-dir $OUTPUT_DIR
 
@@ -33,6 +35,7 @@ python scripts/attack.py \
 	--dataset    example_data.txt \
 	--labels     example_labels.txt \
 	--gene-sets  example_genesets.txt \
+	--set gene-set-000 \
 	--target     0 \
 	--output-dir $OUTPUT_DIR
 
@@ -41,6 +44,7 @@ python scripts/visualize.py \
 	--dataset    example_data.txt \
 	--labels     example_labels.txt \
 	--gene-sets  example_genesets.txt \
+	--set gene-set-000 \
 	--tsne \
 	--heatmap \
 	--target     0 \

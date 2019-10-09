@@ -150,6 +150,7 @@ if __name__ == "__main__":
 	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
+	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--tsne", help="plot t-SNE of samples", action="store_true")
 	parser.add_argument("--heatmap", help="plot heatmaps of sample perturbations", action="store_true")
 	parser.add_argument("--target", help="target class of perturbed data", type=int, default=-1)
@@ -181,53 +182,53 @@ if __name__ == "__main__":
 		print("loaded %d gene sets" % (len(gene_sets)))
 
 		# remove genes which do not exist in the dataset
-		genes = list(set(sum([genes for (name, genes) in gene_sets], [])))
+		genes = list(set(sum([gene_sets[name] for name in gene_sets.keys()], [])))
 		missing_genes = [g for g in genes if g not in df_genes]
 
-		gene_sets = [(name, [g for g in genes if g in df_genes]) for (name, genes) in gene_sets]
+		gene_sets = {name: [g for g in genes if g in df_genes] for name, genes in gene_sets.items()}
 
 		print("%d / %d genes from gene sets were not found in the input dataset" % (len(missing_genes), len(genes)))
 	else:
-		gene_sets = []
+		gene_sets = {"all_genes": df_genes}
 
 	# create visualizations for each gene set
-	for name, genes in gene_sets:
-		# initialize output directory
-		output_dir = "%s/%s" % (args.output_dir, name)
+	name = args.set
+	# initialize output directory
+	output_dir = "%s/%s" % (args.output_dir, name)
 
-		# extract dataset
-		x = df[genes]
-		y = labels
+	# extract dataset
+	x = df[genes]
+	y = labels
 
-		# normalize dataset
-		x = sklearn.preprocessing.MinMaxScaler().fit_transform(x)
+	# normalize dataset
+	x = sklearn.preprocessing.MinMaxScaler().fit_transform(x)
 
-		# select classes to include in plot
-		class_indices = list(range(len(classes)))
+	# select classes to include in plot
+	class_indices = list(range(len(classes)))
 
-		# plot t-SNE visualization if specified
-		if args.tsne:
-			if args.target != -1:
-				x_perturbed = np.load("%s/perturbed_%d.npy" % (output_dir, args.target))
+	# plot t-SNE visualization if specified
+	if args.tsne:
+		if args.target != -1:
+			x_perturbed = np.load("%s/perturbed_%d.npy" % (output_dir, args.target))
 
-				plot_tsne(x, y, classes, class_indices, x_perturbed, args.target, output_dir=output_dir)
-			else:
-				plot_tsne(x, y, classes, class_indices, output_dir=output_dir)
+			plot_tsne(x, y, classes, class_indices, x_perturbed, args.target, output_dir=output_dir)
+		else:
+			plot_tsne(x, y, classes, class_indices, output_dir=output_dir)
 
-		# plot heatmaps for each source-target pair if specified
-		if args.heatmap:
-			for i in range(len(classes)):
-				# load pertubation data
-				source_class = cleanse_label(classes[i])
-				target_class = cleanse_label(classes[args.target])
-				data = np.load("%s/%s_to_%s.npy" % (output_dir, source_class, target_class))
-				data = data.T
+	# plot heatmaps for each source-target pair if specified
+	if args.heatmap:
+		for i in range(len(classes)):
+			# load pertubation data
+			source_class = cleanse_label(classes[i])
+			target_class = cleanse_label(classes[args.target])
+			data = np.load("%s/%s_to_%s.npy" % (output_dir, source_class, target_class))
+			data = data.T
 
-				# initialize dataframe
-				df_pert = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
+			# initialize dataframe
+			df_pert = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
 
-				# sort genes by perturbation value
-				df_pert = df_pert.sort_values("P", ascending=False)
+			# sort genes by perturbation value
+			df_pert = df_pert.sort_values("P", ascending=False)
 
-				# plot heatmap of perturbation data
-				plot_heatmap(df_pert, source_class, target_class, output_dir=output_dir)
+			# plot heatmap of perturbation data
+			plot_heatmap(df_pert, source_class, target_class, output_dir=output_dir)

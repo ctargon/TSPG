@@ -169,6 +169,7 @@ if __name__ == "__main__":
 	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
+	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--target", help="target class", type=int, default=-1)
 	parser.add_argument("--output-dir", help="Output directory", default=".")
 
@@ -198,34 +199,34 @@ if __name__ == "__main__":
 		print("loaded %d gene sets" % (len(gene_sets)))
 
 		# remove genes which do not exist in the dataset
-		genes = list(set(sum([genes for (name, genes) in gene_sets], [])))
+		genes = list(set(sum([gene_sets[name] for name in gene_sets.keys()], [])))
 		missing_genes = [g for g in genes if g not in df_genes]
 
-		gene_sets = [(name, [g for g in genes if g in df_genes]) for (name, genes) in gene_sets]
+		gene_sets = {name: [g for g in genes if g in df_genes] for name, genes in gene_sets.items()}
 
 		print("%d / %d genes from gene sets were not found in the input dataset" % (len(missing_genes), len(genes)))
 	else:
-		gene_sets = []
+		gene_sets = {"all_genes": df_genes}
 
-	# perform attack for each gene set
-	for name, genes in gene_sets:
-		# initialize output directory
-		output_dir = "%s/%s" % (args.output_dir, name)
+	name = args.set
 
-		# extract dataset
-		x = df[genes]
-		y = utils.onehot_encode(labels, range(len(classes)))
+	# initialize output directory
+	output_dir = "%s/%s" % (args.output_dir, name)
 
-		# normalize dataset
-		x = sklearn.preprocessing.MinMaxScaler().fit_transform(x)
+	# extract dataset
+	x = df[genes]
+	y = utils.onehot_encode(labels, classes)
 
-		# get mu and sigma of target class feature vectors
-		target_data = x[np.argmax(y, axis=1) == args.target]
-		target_mu = np.mean(target_data, axis=0)
+	# normalize dataset
+	x = sklearn.preprocessing.MinMaxScaler().fit_transform(x)
 
-		# perform attack
-		attack(x, y, target=args.target, output_dir=output_dir)
+	# get mu and sigma of target class feature vectors
+	target_data = x[np.argmax(y, axis=1) == args.target]
+	target_mu = np.mean(target_data, axis=0)
 
-		# perform source-to-target attack for each source class
-		for i in range(len(classes)):
-			attack_source_target(x, y, classes, i, args.target, target_mu, output_dir=output_dir)
+	# perform attack
+	attack(x, y, target=args.target, output_dir=output_dir)
+
+	# perform source-to-target attack for each source class
+	for i in range(len(classes)):
+		attack_source_target(x, y, classes, i, args.target, target_mu, output_dir=output_dir)
