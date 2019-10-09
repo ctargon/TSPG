@@ -269,35 +269,34 @@ if __name__ == "__main__":
 		print("loaded %d gene sets" % (len(gene_sets)))
 
 		# remove genes which do not exist in the dataset
-		genes = list(set(sum([genes for (name, genes) in gene_sets], [])))
+		genes = list(set(sum([gene_sets[name] for name in gene_sets.keys()], [])))
 		missing_genes = [g for g in genes if g not in df_genes]
 
-		gene_sets = [(name, [g for g in genes if g in df_genes]) for (name, genes) in gene_sets]
+		gene_sets = {name: [g for g in genes if g in df_genes] for name, genes in gene_sets.items()}
 
 		print("%d / %d genes from gene sets were not found in the input dataset" % (len(missing_genes), len(genes)))
 	else:
-		gene_sets = []
+		gene_sets = {"all_genes": df_genes}
 
-	# train a model for each gene set
-	for name, genes in gene_sets:
-		# initialize output directory
-		output_dir = "%s/%s" % (args.output_dir, name)
+	# initialize output directory
+	output_dir = "%s/%s" % (args.output_dir, name)
 
-		# extract dataset
-		X = df[genes]
-		y = utils.onehot_encode(labels, range(len(classes)))
+	# extract dataset
+	X = df[genes]
+	y = utils.onehot_encode(labels, classes)
 
-		# create train/test sets
-		x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.3)
+	# create train/test sets
+	x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.2)
 
-		# normalize dataset
-		Scaler = sklearn.preprocessing.MinMaxScaler
-		x_train = Scaler().fit_transform(x_train)
-		x_test = Scaler().fit_transform(x_test)
+	# normalize dataset
+	Scaler = sklearn.preprocessing.MinMaxScaler
+	x_train = Scaler().fit_transform(x_train)
+	x_test = Scaler().fit_transform(x_test)
 
-		# get mu and sigma of target class feature vectors
-		target_data = x_train[np.argmax(y_train, axis=1) == args.target]
-		target_mu = np.mean(target_data, axis=0)
-		target_cov = np.cov(target_data, rowvar=False)
+	# get mu and sigma of target class feature vectors
+	target_data = x_train[np.argmax(y_train, axis=1) == args.target]
+	target_mu = np.mean(target_data, axis=0)
+	target_cov = np.cov(target_data, rowvar=False)
 
-		AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=output_dir)
+	AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=output_dir)
+	
