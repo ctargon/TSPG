@@ -210,6 +210,12 @@ if __name__ == "__main__":
 
 	name = args.set
 
+	try:
+		genes = gene_sets[name]
+	except:
+		print("gene set is not the subset file provided")
+		sys.exit(1)
+
 	# initialize output directory
 	output_dir = "%s/%s" % (args.output_dir, name)
 
