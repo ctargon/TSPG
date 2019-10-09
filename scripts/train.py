@@ -279,11 +279,11 @@ if __name__ == "__main__":
 	else:
 		gene_sets = {"all_genes": df_genes}
 
-	# initialize output directory
-	output_dir = "%s/%s" % (args.output_dir, name)
-
 	# train a model for each gene set
 	name = args.set
+
+	# initialize output directory
+	output_dir = "%s/%s" % (args.output_dir, name)
 
 	try:
 		genes = gene_sets[name]
