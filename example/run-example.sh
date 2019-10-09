@@ -14,15 +14,15 @@ python scripts/make-input-data.py \
 	--n-sets 5
 
 # train target model on a gene set
-python scripts/target_models.py \
+python scripts/train-target.py \
 	--dataset    example_data.txt \
 	--labels     example_labels.txt \
 	--gene-sets  example_genesets.txt \
 	--set        gene-set-000 \
 	--output-dir ${OUTPUT_DIR}
 
-# train AdvGAN on a gene set
-python scripts/train.py \
+# train AdvGAN model on a gene set
+python scripts/train-advgan.py \
 	--dataset    example_data.txt \
 	--labels     example_labels.txt \
 	--gene-sets  example_genesets.txt \

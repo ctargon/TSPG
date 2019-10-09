@@ -13,7 +13,7 @@ import tensorflow as tf
 import discriminator
 import generator
 import utils
-from target_models import Target_A as target_model
+from target_models import Target_A as Target
 
 
 
@@ -55,7 +55,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 		is_targeted = False
 
 	# gather target model
-	f = target_model(n_input=x_train.shape[-1], n_classes=y_train.shape[-1])
+	f = Target(n_input=x_train.shape[-1], n_classes=y_train.shape[-1])
 
 	# generate perturbation, add to original input image(s)
 	perturb, logit_perturb = generator.generator(x_pl, is_training)
