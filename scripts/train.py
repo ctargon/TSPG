@@ -241,6 +241,7 @@ if __name__ == "__main__":
 	parser.add_argument("--labels", help="list of sample labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--target", help="target class", type=int, default=-1)
+	parser.add_argument("--set", help="gene set to run", type=str, default="HALLMARK_ALL")
 	parser.add_argument("--output-dir", help="Output directory", default=".")
 
 	args = parser.parse_args()
@@ -281,6 +282,15 @@ if __name__ == "__main__":
 	# initialize output directory
 	output_dir = "%s/%s" % (args.output_dir, name)
 
+	# train a model for each gene set
+	name = args.set
+
+	try:
+		genes = gene_sets[name]
+	except:
+		print("gene set is not the subset file provided")
+		sys.exit(1)
+
 	# extract dataset
 	X = df[genes]
 	y = utils.onehot_encode(labels, classes)
@@ -299,4 +309,4 @@ if __name__ == "__main__":
 	target_cov = np.cov(target_data, rowvar=False)
 
 	AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=output_dir)
-	
+
