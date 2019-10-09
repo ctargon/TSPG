@@ -83,7 +83,7 @@ def load_gene_sets(filename):
 
 
 def onehot_encode(y, classes):
-	return np.array([classes == y_i for y_i in y])
+	return np.eye(len(classes))[y]
 
 
 
