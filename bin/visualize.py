@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse
 import matplotlib.cm as cm
 import matplotlib.colors as mcol
