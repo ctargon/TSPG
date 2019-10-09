@@ -186,6 +186,9 @@ if __name__ == "__main__":
 
 	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
 
+	# impute missing values
+	df.fillna(value=df.min().min(), inplace=True)
+
 	# print target class if specified
 	if args.target != -1:
 		print("target class is: %s" % (classes[args.target]))
@@ -208,9 +211,9 @@ if __name__ == "__main__":
 	else:
 		gene_sets = {"all_genes": df_genes}
 
-	name = args.set
-
+	# select gene set
 	try:
+		name = args.set
 		genes = gene_sets[name]
 	except:
 		print("gene set is not the subset file provided")

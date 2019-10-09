@@ -60,7 +60,7 @@ class Target:
 
 			for i in range(n_batches):
 				batch_x, batch_y = utils.next_batch(x_train, y_train, self.batch_size, i)
-				
+
 				_, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y, training: True})
 
 				avg_cost += c / n_batches
@@ -71,7 +71,7 @@ class Target:
 		os.makedirs(path, exist_ok=True)
 
 		saver.save(sess, "%s/%s.ckpt" % (path, model_name))
-		sess.close() 
+		sess.close()
 
 	def inference_model(self, x_test, y_test, model_name):
 		tf.reset_default_graph()
@@ -79,7 +79,7 @@ class Target:
 		x = tf.placeholder(tf.float32, [None, self.n_input])
 		y = tf.placeholder(tf.float32, [None, self.n_classes])
 		training = tf.placeholder(tf.bool, shape=())
-		
+
 		logits, probs = self.Model(x, training)
 
 		saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=model_name))
@@ -151,7 +151,7 @@ class Target_B(Target):
 
 			fc2 = tf.layers.dense(inputs=fc1_bn, units=512, activation=None)
 			fc2_bn = tf.nn.relu(tf.layers.batch_normalization(fc2, training=training))
-			
+
 			fc3 = tf.layers.dense(inputs=fc2_bn, units=128, activation=None)
 			fc3_bn = tf.nn.relu(tf.layers.batch_normalization(fc3, training=training))
 
@@ -189,7 +189,7 @@ class Target_C(Target):
 
 			fc3 = tf.layers.dense(inputs=fc2_bn, units=512, activation=None)
 			fc3_bn = tf.nn.relu(tf.layers.batch_normalization(fc2, training=training))
-			
+
 			fc4 = tf.layers.dense(inputs=fc3_bn, units=512, activation=None)
 			fc4_bn = tf.nn.relu(tf.layers.batch_normalization(fc2, training=training))
 
@@ -231,6 +231,9 @@ if __name__ == "__main__":
 	labels, classes = utils.load_labels(args.labels)
 
 	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
+
+	# impute missing values
+	df.fillna(value=df.min().min(), inplace=True)
 
 	# load gene sets file if it was provided
 	if args.gene_sets != None:

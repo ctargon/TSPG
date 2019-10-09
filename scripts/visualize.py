@@ -112,7 +112,7 @@ def plot_heatmap(df, source_class, target_class, output_dir="."):
 		)
 	}
 	blue_red = mcol.LinearSegmentedColormap("BlueRed1", cdict)
-	plt.register_cmap(name="BlueRed", cmap=blue_red) 
+	plt.register_cmap(name="BlueRed", cmap=blue_red)
 
 	for i in range(len(df.columns)):
 		# get the vector, then tile it some so it is visible if very long
@@ -168,6 +168,9 @@ if __name__ == "__main__":
 	labels, classes = utils.load_labels(args.labels)
 
 	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
+
+	# impute missing values
+	df.fillna(value=df.min().min(), inplace=True)
 
 	# print target class if specified
 	if args.target != -1:

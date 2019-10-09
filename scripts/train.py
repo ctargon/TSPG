@@ -65,11 +65,11 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	# pass real and perturbed image to discriminator and the target model
 	d_real_logits, d_real_probs = discriminator.discriminator(x_pl, is_training)
 	d_fake_logits, d_fake_probs = discriminator.discriminator(x_perturbed, is_training)
-	
+
 	# pass real and perturbed images to the model we are trying to fool
 	f_real_logits, f_real_probs = f.Model(x_pl, target_is_training)
 	f_fake_logits, f_fake_probs = f.Model(x_perturbed, target_is_training)
-	
+
 	# generate labels for discriminator (optionally smooth labels for stability)
 	smooth = 0.0
 	d_labels_real = tf.ones_like(d_real_probs) * (1 - smooth)
@@ -145,7 +145,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 
 		target_normal_np = np.random.multivariate_normal(t_mu, t_cov, (batch_size))
 		target_normal_np = np.clip(target_normal_np, 0, 1)
-	
+
 		for i in range(n_batches):
 			# extract batch
 			batch_x, batch_y = utils.next_batch(x_train, y_train, batch_size, i)
@@ -158,7 +158,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 			# train the discriminator first n times
 			for _ in range(1):
 				_, loss_D_batch = sess.run([d_opt, d_loss], feed_dict={
-					x_pl: batch_x, 
+					x_pl: batch_x,
 					target_normal: target_normal_np,
 					is_training: True
 				})
@@ -167,10 +167,10 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 			for _ in range(1):
 				_, loss_G_fake_batch, loss_adv_batch, loss_perturb_batch, loss_target_batch = \
 					sess.run([g_opt, g_loss_fake, l_adv, l_perturb, l_tar_dist], feed_dict={
-						x_pl: batch_x, 
-						y_pl: batch_y, 
+						x_pl: batch_x,
+						y_pl: batch_y,
 						target_normal: target_normal_np,
-						is_training: True, 
+						is_training: True,
 						target_is_training: False
 					})
 
@@ -257,6 +257,9 @@ if __name__ == "__main__":
 
 	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
 
+	# impute missing values
+	df.fillna(value=df.min().min(), inplace=True)
+
 	# print target class if specified
 	if args.target != -1:
 		print("target class is: %s" % (classes[args.target]))
@@ -279,17 +282,16 @@ if __name__ == "__main__":
 	else:
 		gene_sets = {"all_genes": df_genes}
 
-	# train a model for each gene set
-	name = args.set
-
-	# initialize output directory
-	output_dir = "%s/%s" % (args.output_dir, name)
-
+	# select gene set
 	try:
+		name = args.set
 		genes = gene_sets[name]
 	except:
 		print("gene set is not the subset file provided")
 		sys.exit(1)
+
+	# initialize output directory
+	output_dir = "%s/%s" % (args.output_dir, name)
 
 	# extract dataset
 	X = df[genes]
@@ -309,4 +311,3 @@ if __name__ == "__main__":
 	target_cov = np.cov(target_data, rowvar=False)
 
 	AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=output_dir)
-
