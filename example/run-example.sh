@@ -15,35 +15,35 @@ python scripts/make-input-data.py \
 
 # train target model on a gene set
 python scripts/train-target.py \
-	--dataset    example_data.txt \
-	--labels     example_labels.txt \
-	--gene-sets  example_genesets.txt \
+	--dataset    example.emx.txt \
+	--labels     example.labels.txt \
+	--gene-sets  example.genesets.txt \
 	--set        gene-set-000 \
 	--output-dir ${OUTPUT_DIR}
 
 # train AdvGAN model on a gene set
 python scripts/train-advgan.py \
-	--dataset    example_data.txt \
-	--labels     example_labels.txt \
-	--gene-sets  example_genesets.txt \
+	--dataset    example.emx.txt \
+	--labels     example.labels.txt \
+	--gene-sets  example.genesets.txt \
 	--set        gene-set-000 \
 	--target     0 \
 	--output-dir ${OUTPUT_DIR}
 
 # perform attack on AdvGAN
 python scripts/attack.py \
-	--dataset    example_data.txt \
-	--labels     example_labels.txt \
-	--gene-sets  example_genesets.txt \
+	--dataset    example.emx.txt \
+	--labels     example.labels.txt \
+	--gene-sets  example.genesets.txt \
 	--set        gene-set-000 \
 	--target     0 \
 	--output-dir ${OUTPUT_DIR}
 
-# create t-SNE visualizations of perturbed samples for each gene set
+# create t-SNE and heatmap visualizations of perturbed samples for a gene set
 python scripts/visualize.py \
-	--dataset    example_data.txt \
-	--labels     example_labels.txt \
-	--gene-sets  example_genesets.txt \
+	--dataset    example.emx.txt \
+	--labels     example.labels.txt \
+	--gene-sets  example.genesets.txt \
 	--set        gene-set-000 \
 	--tsne \
 	--heatmap \
