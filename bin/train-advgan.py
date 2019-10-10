@@ -292,9 +292,6 @@ if __name__ == "__main__":
 		print("gene set is not the subset file provided")
 		sys.exit(1)
 
-	# initialize output directory
-	output_dir = "%s/%s" % (args.output_dir, name)
-
 	# extract dataset
 	X = df[genes]
 	y = utils.onehot_encode(labels, classes)
@@ -312,4 +309,4 @@ if __name__ == "__main__":
 	target_mu = np.mean(target_data, axis=0)
 	target_cov = np.cov(target_data, rowvar=False)
 
-	AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=output_dir)
+	AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=args.output_dir)

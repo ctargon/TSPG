@@ -1,51 +1,53 @@
 #!/bin/bash
 # Example usage of TSPG on a synthetic dataset.
 
-# remove old output data
-OUTPUT_DIR="example/output"
+GENE_SET="gene-set-000"
+TARGET_CLASS="0"
+OUTPUT_DIR="example/output/${GENE_SET}"
 
+# remove old output data
 rm -rf ${OUTPUT_DIR}
 
 # create synthetic input data
-python scripts/make-input-data.py \
+bin/make-input-data.py \
 	--n-samples 1000 \
 	--n-genes 200 \
 	--n-classes 10 \
 	--n-sets 5
 
 # train target model on a gene set
-python scripts/train-target.py \
+bin/train-target.py \
 	--dataset    example.emx.txt \
 	--labels     example.labels.txt \
 	--gene-sets  example.genesets.txt \
-	--set        gene-set-000 \
+	--set        ${GENE_SET} \
 	--output-dir ${OUTPUT_DIR}
 
 # train AdvGAN model on a gene set
-python scripts/train-advgan.py \
+bin/train-advgan.py \
 	--dataset    example.emx.txt \
 	--labels     example.labels.txt \
 	--gene-sets  example.genesets.txt \
-	--set        gene-set-000 \
-	--target     0 \
+	--set        ${GENE_SET} \
+	--target     ${TARGET_CLASS} \
 	--output-dir ${OUTPUT_DIR}
 
 # perform attack on AdvGAN
-python scripts/attack.py \
+bin/attack.py \
 	--dataset    example.emx.txt \
 	--labels     example.labels.txt \
 	--gene-sets  example.genesets.txt \
-	--set        gene-set-000 \
-	--target     0 \
+	--set        ${GENE_SET} \
+	--target     ${TARGET_CLASS} \
 	--output-dir ${OUTPUT_DIR}
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
-python scripts/visualize.py \
+bin/visualize.py \
 	--dataset    example.emx.txt \
 	--labels     example.labels.txt \
 	--gene-sets  example.genesets.txt \
-	--set        gene-set-000 \
+	--set        ${GENE_SET} \
+	--target     ${TARGET_CLASS} \
 	--tsne \
 	--heatmap \
-	--target     0 \
 	--output-dir ${OUTPUT_DIR}

@@ -55,8 +55,6 @@ if __name__ == "__main__":
 	# train a model for each gene set
 	name = args.set
 	genes = gene_sets[name]
-	# initialize output directory
-	output_dir = "%s/%s" % (args.output_dir, name)
 
 	# extract dataset
 	X = df[genes]
@@ -70,6 +68,6 @@ if __name__ == "__main__":
 	x_train = Scaler().fit_transform(x_train)
 	x_test = Scaler().fit_transform(x_test)
 
-	clf = Target(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=32, output_dir=output_dir)
+	clf = Target(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=32, output_dir=args.output_dir)
 	clf.train(x_train, y_train)
 	clf.inference(x_test, y_test)

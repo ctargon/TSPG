@@ -205,9 +205,6 @@ if __name__ == "__main__":
 		print("gene set is not the subset file provided")
 		sys.exit(1)
 
-	# initialize output directory
-	output_dir = "%s/%s" % (args.output_dir, name)
-
 	# extract dataset
 	x = df[genes]
 	y = labels
@@ -221,11 +218,11 @@ if __name__ == "__main__":
 	# plot t-SNE visualization if specified
 	if args.tsne:
 		if args.target != -1:
-			x_perturbed = np.load("%s/perturbed_%d.npy" % (output_dir, args.target))
+			x_perturbed = np.load("%s/perturbed_%d.npy" % (args.output_dir, args.target))
 
-			plot_tsne(x, y, classes, class_indices, x_perturbed, args.target, output_dir=output_dir)
+			plot_tsne(x, y, classes, class_indices, x_perturbed, args.target, output_dir=args.output_dir)
 		else:
-			plot_tsne(x, y, classes, class_indices, output_dir=output_dir)
+			plot_tsne(x, y, classes, class_indices, output_dir=args.output_dir)
 
 	# plot heatmaps for each source-target pair if specified
 	if args.heatmap:
@@ -233,7 +230,7 @@ if __name__ == "__main__":
 			# load pertubation data
 			source_class = cleanse_label(classes[i])
 			target_class = cleanse_label(classes[args.target])
-			data = np.load("%s/%s_to_%s.npy" % (output_dir, source_class, target_class))
+			data = np.load("%s/%s_to_%s.npy" % (args.output_dir, source_class, target_class))
 			data = data.T
 
 			# initialize dataframe
@@ -243,4 +240,4 @@ if __name__ == "__main__":
 			df_pert = df_pert.sort_values("P", ascending=False)
 
 			# plot heatmap of perturbation data
-			plot_heatmap(df_pert, source_class, target_class, output_dir=output_dir)
+			plot_heatmap(df_pert, source_class, target_class, output_dir=args.output_dir)

@@ -221,9 +221,6 @@ if __name__ == "__main__":
 		print("gene set is not the subset file provided")
 		sys.exit(1)
 
-	# initialize output directory
-	output_dir = "%s/%s" % (args.output_dir, name)
-
 	# extract dataset
 	x = df[genes]
 	y = utils.onehot_encode(labels, classes)
@@ -236,8 +233,8 @@ if __name__ == "__main__":
 	target_mu = np.mean(target_data, axis=0)
 
 	# perform attack
-	attack(x, y, target=args.target, output_dir=output_dir)
+	attack(x, y, target=args.target, output_dir=args.output_dir)
 
 	# perform source-to-target attack for each source class
 	for i in range(len(classes)):
-		attack_source_target(x, y, classes, i, args.target, target_mu, output_dir=output_dir)
+		attack_source_target(x, y, classes, i, args.target, target_mu, output_dir=args.output_dir)
