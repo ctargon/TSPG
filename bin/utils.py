@@ -79,6 +79,22 @@ def load_gene_sets(filename):
 
 
 
+def filter_gene_sets(gene_sets, df_genes):
+	# compute the union of all gene sets
+	genes = list(set(sum([gene_sets[name] for name in gene_sets.keys()], [])))
+
+	# determine the genes which are not in the dataset
+	missing_genes = [g for g in genes if g not in df_genes]
+
+	# remove missing genes from each gene set
+	gene_sets = {name: [g for g in genes if g in df_genes] for name, genes in gene_sets.items()}
+
+	print("%d / %d genes from gene sets were not found in the input dataset" % (len(missing_genes), len(genes)))
+
+	return gene_sets
+
+
+
 def onehot_encode(y, classes):
 	return np.eye(len(classes))[y]
 
