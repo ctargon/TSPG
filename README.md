@@ -54,7 +54,7 @@ For large GEM files, it is recommended that you convert the GEM to numpy format 
 python bin/convert.py GEM.txt GEM.npy --transpose
 ```
 
-This example will create three files: `GEM.npy`, `GEM_rownames.txt`, and `GEM_colnames.txt`. The latter two files contain the row names and column names, respectively. Make sure that the rows are samples and the columns are genes!
+This example will create three files: `GEM.npy`, `GEM.rownames.txt`, and `GEM.colnames.txt`. The latter two files contain the row names and column names, respectively. Make sure that the rows are samples and the columns are genes!
 
 The __label file__ should contain a label for each sample, corresponding to something such as a condition or phenotype state for the sample. This file should contain two columns, the first being the sample names and the second being the labels. Values in each row should be separated by tabs.
 ```

@@ -3,6 +3,7 @@
 import argparse
 import math
 import numpy as np
+import pandas as pd
 import os
 import sklearn.model_selection
 import sklearn.preprocessing
@@ -15,16 +16,10 @@ from target_models import Target_A as target_model
 
 
 
-def cleanse_label(label):
-	label = label.replace(" ", "_")
-	label = label.replace("-", "")
-	label = label.replace("(", "")
-	label = label.replace(")", "")
-	return label
-
-
-
 def attack_source_target(x, y, classes, source, target, target_mu, output_dir="."):
+	print("attempting to perturb %s samples to %s..." % (classes[source], classes[target]))
+
+	# extract samples in source class
 	source_indices = np.where(np.argmax(y, axis=1) == source)
 	x_source = x[source_indices]
 	y_source = y[source_indices]
@@ -70,6 +65,7 @@ def attack_source_target(x, y, classes, source, target, target_mu, output_dir=".
 		targets = np.full((y_source.shape[0],), target)
 		batch_y = np.eye(y_pl.shape[-1])[targets]
 
+	# generate perturbed samples
 	x_pert, p = sess.run([x_perturbed, perturb], feed_dict={
 		x_pl: x_source,
 		y_pl: batch_y,
@@ -77,23 +73,17 @@ def attack_source_target(x, y, classes, source, target, target_mu, output_dir=".
 		is_training_target: False
 	})
 
-	print("source class is: %s" % (classes[source]))
-	print("X:")
-	print(x_source[0])
-	print("P:")
-	print(p[0])
-	print("X_adv:")
-	print(x_pert[0])
-	print("mu_T:")
-	print(target_mu)
+	# save first perturbed sample to dataframe
+	df_pert = pd.DataFrame(
+		data=np.vstack([x_source[0], p[0], x_pert[0], target_mu]).T,
+		index=genes,
+		columns=["X", "P", "X_adv", "mu_T"]
+	)
 
-	# save the results in X, P, X_adv, mu_T order
-	results = np.vstack([x_source[0], p[0], x_pert[0], target_mu])
+	source_class = utils.clean_label(classes[source])
+	target_class = utils.clean_label(classes[target])
 
-	source_class = cleanse_label(classes[source])
-	target_class = cleanse_label(classes[target])
-
-	np.save("%s/%s_to_%s.npy" % (output_dir, source_class, target_class), results)
+	utils.save_dataframe("%s/%s_to_%s.npy" % (output_dir, source_class, target_class), df_pert)
 
 
 

@@ -13,15 +13,6 @@ import utils
 
 
 
-def cleanse_label(label):
-	label = label.replace(" ", "_")
-	label = label.replace("-", "")
-	label = label.replace("(", "")
-	label = label.replace(")", "")
-	return label
-
-
-
 def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1, output_dir="."):
 	# extract data for each class into separate arrays
 	tsne_n = []
@@ -232,14 +223,10 @@ if __name__ == "__main__":
 		for i in range(len(classes)):
 			try:
 				# load pertubation data
-				source_class = cleanse_label(classes[i])
-				target_class = cleanse_label(classes[args.target])
+				source_class = utils.clean_label(classes[i])
+				target_class = utils.clean_label(classes[args.target])
 
-				data = np.load("%s/%s_to_%s.npy" % (args.output_dir, source_class, target_class))
-				data = data.T
-
-				# initialize dataframe
-				df_pert = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
+				df_pert = utils.load_dataframe("%s/%s_to_%s.npy" % (args.output_dir, source_class, target_class))
 
 				# sort genes by perturbation value
 				df_pert = df_pert.sort_values("P", ascending=False)
