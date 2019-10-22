@@ -74,7 +74,7 @@ DATASETS
  */
 process train_target {
 	tag "${dataset}/${gene_set}"
-	publishDir "${params.output.dir}/${dataset}/${gene_set}", saveAs: { it.replaceAll("__", "/") }
+	publishDir "${params.output.dir}/${dataset}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
 	input:
 		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_TRAIN_TARGET
@@ -113,7 +113,7 @@ TARGET_MODELS_FROM_TRAIN_TARGET
  */
 process train_advgan {
 	tag "${dataset}/${gene_set}"
-	publishDir "${params.output.dir}/${dataset}/${gene_set}", saveAs: { it.replaceAll("__", "/") }
+	publishDir "${params.output.dir}/${dataset}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
 	input:
 		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_TRAIN_ADVGAN
@@ -152,7 +152,7 @@ process train_advgan {
  */
 process attack {
 	tag "${dataset}/${gene_set}"
-	publishDir "${params.output.dir}/${dataset}/${gene_set}", saveAs: { it.replaceAll("__", "/") }
+	publishDir "${params.output.dir}/${dataset}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
 	input:
 		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_ATTACK
@@ -177,12 +177,14 @@ process attack {
 		rename 's/^generator__/generator\\//' generator__*
 
 		attack.py \
-			--dataset    ${data_files[0]} \
-			--labels     ${labels} \
-			--gene-sets  ${gmt_file} \
-			--set        ${gene_set} \
-			--target     ${params.train_advgan.target_class} \
-			--output-dir .
+			--train-data   ${data_files[0]} \
+			--train-labels ${labels} \
+			--test-data    ${data_files[0]} \
+			--test-labels  ${labels} \
+			--gene-sets    ${gmt_file} \
+			--set          ${gene_set} \
+			--target       ${params.train_advgan.target_class} \
+			--output-dir   .
 		"""
 }
 
@@ -194,7 +196,7 @@ process attack {
  */
 process visualize {
 	tag "${dataset}/${gene_set}"
-	publishDir "${params.output.dir}/${dataset}/${gene_set}", saveAs: { it.replaceAll("__", "/") }
+	publishDir "${params.output.dir}/${dataset}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
 	input:
 		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_VISUALIZE
@@ -209,12 +211,14 @@ process visualize {
 	script:
 		"""
 		visualize.py \
-			--dataset    ${data_files[0]} \
-			--labels     ${labels} \
-			--gene-sets  ${gmt_file} \
-			--set        ${gene_set} \
-			--target     ${params.train_advgan.target_class} \
-			--output-dir . \
+			--train-data   ${data_files[0]} \
+			--train-labels ${labels} \
+			--test-data    ${data_files[0]} \
+			--test-labels  ${labels} \
+			--gene-sets    ${gmt_file} \
+			--set          ${gene_set} \
+			--target       ${params.train_advgan.target_class} \
+			--output-dir   . \
 			--tsne \
 			--heatmap
 		"""

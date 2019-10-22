@@ -55,17 +55,20 @@ def save_dataframe(filename, df):
 
 
 
-def load_labels(filename):
+def load_labels(filename, classes=None):
 	# load labels file
 	labels = pd.read_csv(filename, sep="\t", header=None, index_col=0)
+	labels = labels[1].values
 
 	# convert categorical labels to numerical labels
-	encoder = sklearn.preprocessing.LabelEncoder()
+	if classes != None:
+		labels = [classes.index(l) for l in labels]
+	else:
+		encoder = sklearn.preprocessing.LabelEncoder()
+		labels = encoder.fit_transform(labels)
+		classes = list(encoder.classes_)
 
-	labels = labels[1].values
-	labels = encoder.fit_transform(labels)
-
-	return labels, encoder.classes_
+	return labels, classes
 
 
 

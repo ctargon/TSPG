@@ -149,8 +149,10 @@ def plot_heatmap(df, source_class, target_class, output_dir="."):
 if __name__ == "__main__":
 	# parse command-line arguments
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
-	parser.add_argument("--labels", help="list of sample labels", required=True)
+	parser.add_argument("--train-data", help="training data (samples x genes)", required=True)
+	parser.add_argument("--train-labels", help="training labels", required=True)
+	parser.add_argument("--test-data", help="test data (samples x genes)", required=True)
+	parser.add_argument("--test-labels", help="test labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--tsne", help="plot t-SNE of samples", action="store_true")
@@ -161,18 +163,22 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# load input data
-	print("loading input dataset...")
+	print("loading train/test data...")
 
-	df = utils.load_dataframe(args.dataset)
-	df_samples = df.index
-	df_genes = df.columns
+	df_train = utils.load_dataframe(args.train_data)
+	df_test = utils.load_dataframe(args.test_data)
 
-	labels, classes = utils.load_labels(args.labels)
+	y_train, classes = utils.load_labels(args.train_labels)
+	y_test, _ = utils.load_labels(args.test_labels, classes)
 
-	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
+	print("loaded train data (%s genes, %s samples)" % (df_train.shape[1], df_train.shape[0]))
+	print("loaded test data (%s genes, %s samples)" % (df_test.shape[1], df_test.shape[0]))
 
 	# impute missing values
-	df.fillna(value=df.min().min(), inplace=True)
+	min_value = df_train.min().min()
+
+	df_train.fillna(value=min_value, inplace=True)
+	df_test.fillna(value=min_value, inplace=True)
 
 	# print target class if specified
 	if args.target != -1:
@@ -198,12 +204,16 @@ if __name__ == "__main__":
 		print("gene set is not the subset file provided")
 		sys.exit(1)
 
-	# extract dataset
-	x = df[genes]
-	y = labels
+	# extract train/test data
+	x_train = df_train[genes]
+	x_test = df_test[genes]
 
-	# normalize dataset
-	x = sklearn.preprocessing.MinMaxScaler().fit_transform(x)
+	# normalize test data (using the train data)
+	scaler = sklearn.preprocessing.MinMaxScaler()
+	scaler.fit(x_train)
+
+	x_train = scaler.transform(x_train)
+	x_test = scaler.transform(x_test)
 
 	# select classes to include in plot
 	class_indices = list(range(len(classes)))
@@ -213,24 +223,28 @@ if __name__ == "__main__":
 		if args.target != -1:
 			x_perturbed = np.load("%s/perturbed_%d.npy" % (args.output_dir, args.target))
 
-			plot_tsne(x, y, classes, class_indices, x_perturbed, args.target, output_dir=args.output_dir)
+			plot_tsne(x_train, y_train, classes, class_indices, x_perturbed, args.target, output_dir=args.output_dir)
 		else:
-			plot_tsne(x, y, classes, class_indices, output_dir=args.output_dir)
+			plot_tsne(x_train, y_train, classes, class_indices, output_dir=args.output_dir)
 
 	# plot heatmaps for each source-target pair if specified
 	if args.heatmap:
 		for i in range(len(classes)):
-			# load pertubation data
-			source_class = cleanse_label(classes[i])
-			target_class = cleanse_label(classes[args.target])
-			data = np.load("%s/%s_to_%s.npy" % (args.output_dir, source_class, target_class))
-			data = data.T
+			try:
+				# load pertubation data
+				source_class = cleanse_label(classes[i])
+				target_class = cleanse_label(classes[args.target])
 
-			# initialize dataframe
-			df_pert = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
+				data = np.load("%s/%s_to_%s.npy" % (args.output_dir, source_class, target_class))
+				data = data.T
 
-			# sort genes by perturbation value
-			df_pert = df_pert.sort_values("P", ascending=False)
+				# initialize dataframe
+				df_pert = pd.DataFrame(data, index=genes, columns=["X", "P", "X_adv", "mu_T"])
 
-			# plot heatmap of perturbation data
-			plot_heatmap(df_pert, source_class, target_class, output_dir=args.output_dir)
+				# sort genes by perturbation value
+				df_pert = df_pert.sort_values("P", ascending=False)
+
+				# plot heatmap of perturbation data
+				plot_heatmap(df_pert, source_class, target_class, output_dir=args.output_dir)
+			except FileNotFoundError:
+				print("warning: no data found for %s to %s" % (source_class, target_class))

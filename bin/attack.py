@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import math
 import numpy as np
 import os
 import sklearn.model_selection
@@ -27,6 +28,10 @@ def attack_source_target(x, y, classes, source, target, target_mu, output_dir=".
 	source_indices = np.where(np.argmax(y, axis=1) == source)
 	x_source = x[source_indices]
 	y_source = y[source_indices]
+
+	if len(source_indices[0]) == 0:
+		print("there are no test samples with class %s" % (classes[source]))
+		return
 
 	x_pl = tf.placeholder(tf.float32, [None, x_source.shape[-1]])
 	y_pl = tf.placeholder(tf.float32, [None, y_source.shape[-1]])
@@ -79,10 +84,10 @@ def attack_source_target(x, y, classes, source, target, target_mu, output_dir=".
 	print(p[0])
 	print("X_adv:")
 	print(x_pert[0])
-	print("target_mu:")
+	print("mu_T:")
 	print(target_mu)
 
-	# save the results in X, P, X_adv, target_mu order
+	# save the results in X, P, X_adv, mu_T order
 	results = np.vstack([x_source[0], p[0], x_pert[0], target_mu])
 
 	source_class = cleanse_label(classes[source])
@@ -133,7 +138,7 @@ def attack(x_train, y_train, target=-1, batch_size=64, output_dir="."):
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 	scores = []
 	x_pert = []
-	n_batches = int(len(x_train) / batch_size)
+	n_batches = math.ceil(len(x_train) / batch_size)
 
 	for i in range(n_batches):
 		batch_x, batch_y_og = utils.next_batch(x_train, y_train, batch_size, i)
@@ -168,8 +173,10 @@ def attack(x_train, y_train, target=-1, batch_size=64, output_dir="."):
 if __name__ == "__main__":
 	# parse command-line arguments
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--dataset", help="input dataset (samples x genes)", required=True)
-	parser.add_argument("--labels", help="list of sample labels", required=True)
+	parser.add_argument("--train-data", help="training data (samples x genes)", required=True)
+	parser.add_argument("--train-labels", help="training labels", required=True)
+	parser.add_argument("--test-data", help="test data (samples x genes)", required=True)
+	parser.add_argument("--test-labels", help="test labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--target", help="target class", type=int, default=-1)
@@ -178,18 +185,22 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# load input data
-	print("loading input dataset...")
+	print("loading train/test data...")
 
-	df = utils.load_dataframe(args.dataset)
-	df_samples = df.index
-	df_genes = df.columns
+	df_train = utils.load_dataframe(args.train_data)
+	df_test = utils.load_dataframe(args.test_data)
 
-	labels, classes = utils.load_labels(args.labels)
+	y_train, classes = utils.load_labels(args.train_labels)
+	y_test, _ = utils.load_labels(args.test_labels, classes)
 
-	print("loaded input dataset (%s genes, %s samples)" % (df.shape[1], df.shape[0]))
+	print("loaded train data (%s genes, %s samples)" % (df_train.shape[1], df_train.shape[0]))
+	print("loaded test data (%s genes, %s samples)" % (df_test.shape[1], df_test.shape[0]))
 
 	# impute missing values
-	df.fillna(value=df.min().min(), inplace=True)
+	min_value = df_train.min().min()
+
+	df_train.fillna(value=min_value, inplace=True)
+	df_test.fillna(value=min_value, inplace=True)
 
 	# print target class if specified
 	if args.target != -1:
@@ -200,11 +211,11 @@ if __name__ == "__main__":
 		print("loading gene sets...")
 
 		gene_sets = utils.load_gene_sets(args.gene_sets)
-		gene_sets = utils.filter_gene_sets(gene_sets, df_genes)
+		gene_sets = utils.filter_gene_sets(gene_sets, df_test.columns)
 
 		print("loaded %d gene sets" % (len(gene_sets)))
 	else:
-		gene_sets = {"all_genes": df_genes}
+		gene_sets = {"all_genes": df_test.columns}
 
 	# select gene set
 	try:
@@ -214,20 +225,27 @@ if __name__ == "__main__":
 		print("gene set is not the subset file provided")
 		sys.exit(1)
 
-	# extract dataset
-	x = df[genes]
-	y = utils.onehot_encode(labels, classes)
+	# extract train/test data
+	x_train = df_train[genes]
+	x_test = df_test[genes]
 
-	# normalize dataset
-	x = sklearn.preprocessing.MinMaxScaler().fit_transform(x)
+	y_train = utils.onehot_encode(y_train, classes)
+	y_test = utils.onehot_encode(y_test, classes)
+
+	# normalize test data (using the train data)
+	scaler = sklearn.preprocessing.MinMaxScaler()
+	scaler.fit(x_train)
+
+	x_train = scaler.transform(x_train)
+	x_test = scaler.transform(x_test)
 
 	# get mu and sigma of target class feature vectors
-	target_data = x[np.argmax(y, axis=1) == args.target]
+	target_data = x_train[np.argmax(y_train, axis=1) == args.target]
 	target_mu = np.mean(target_data, axis=0)
 
 	# perform attack
-	attack(x, y, target=args.target, output_dir=args.output_dir)
+	attack(x_test, y_test, target=args.target, output_dir=args.output_dir)
 
 	# perform source-to-target attack for each source class
 	for i in range(len(classes)):
-		attack_source_target(x, y, classes, i, args.target, target_mu, output_dir=args.output_dir)
+		attack_source_target(x_test, y_test, classes, i, args.target, target_mu, output_dir=args.output_dir)
