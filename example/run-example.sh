@@ -34,20 +34,24 @@ bin/train-advgan.py \
 
 # perform attack on AdvGAN
 bin/attack.py \
-	--dataset    example.emx.txt \
-	--labels     example.labels.txt \
-	--gene-sets  example.genesets.txt \
-	--set        ${GENE_SET} \
-	--target     ${TARGET_CLASS} \
-	--output-dir ${OUTPUT_DIR}
+	--train-data   example.emx.txt \
+	--train-labels example.labels.txt \
+	--test-data    example.emx.txt \
+	--test-labels  example.labels.txt \
+	--gene-sets    example.genesets.txt \
+	--set          ${GENE_SET} \
+	--target       ${TARGET_CLASS} \
+	--output-dir   ${OUTPUT_DIR}
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
 bin/visualize.py \
-	--dataset    example.emx.txt \
-	--labels     example.labels.txt \
-	--gene-sets  example.genesets.txt \
-	--set        ${GENE_SET} \
-	--target     ${TARGET_CLASS} \
+	--train-data   example.emx.txt \
+	--train-labels example.labels.txt \
+	--test-data    example.emx.txt \
+	--test-labels  example.labels.txt \
+	--gene-sets    example.genesets.txt \
+	--set          ${GENE_SET} \
+	--target       ${TARGET_CLASS} \
 	--tsne \
 	--heatmap \
-	--output-dir ${OUTPUT_DIR}
+	--output-dir   ${OUTPUT_DIR}
