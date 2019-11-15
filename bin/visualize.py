@@ -13,51 +13,31 @@ import utils
 
 
 
-def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1, output_dir="."):
-	# extract data for each class into separate arrays
-	tsne_n = []
-	tsne_x = []
-	tsne_y = []
+def plot_tsne(x, y, classes, class_indices, x_pert=None, y_pert=-1, output_dir="."):
+	# compute t-SNE embedding on merged data
+	if y_pert != -1:
+		x_tsne = np.vstack([x, x_pert])
+	else:
+		x_tsne = x
 
-	for class_index in class_indices:
-		indices = (y == class_index)
-		tsne_n.append(len(x[indices]))
-		tsne_x.append(x[indices])
-		tsne_y.append(classes[class_index])
-
-	# append perturbed data if it was provided
-	if x_perturbed is not None:
-		n_perturbed = 100
-		indices = np.arange(len(x_perturbed))
-		np.random.shuffle(indices)
-		class_indices.append(y_perturbed)
-		tsne_n.append(n_perturbed)
-		tsne_x.append(x_perturbed[indices[0:n_perturbed]])
-		tsne_y.append("%s (perturbed)" % (classes[y_perturbed]))
-
-	# perform t-SNE on merged data
-	x_tsne = np.vstack(tsne_x)
 	x_tsne = sklearn.manifold.TSNE().fit_transform(x_tsne)
 
-	# separate embedded data back into separate arrays
-	tsne_x = []
-	start = 0
-	for n in tsne_n:
-		tsne_x.append(x_tsne[start:(start + n)])
-		start += n
+	# separate embedded data back into original and perturbed
+	x = x_tsne[:len(x)]
+	x_pert = x_tsne[len(x):]
 
 	# plot t-SNE embedding by class
 	fig, ax = plt.subplots()
 	colors = cm.rainbow(np.linspace(0, 1, len(class_indices)))
 
-	for x, y, c in zip(tsne_x, tsne_y, colors):
-		if "(perturbed)" in y:
-			c = "k"
-			alpha = 0.25
-		else:
-			alpha = 0.75
+	for k in class_indices:
+		indices = (y == k)
 
-		ax.scatter(x[:, 0], x[:, 1], label=y, color=c, alpha=alpha)
+		ax.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75)
+
+		if y_pert != -1:
+			label = "%s (perturbed)" % (classes[k])
+			ax.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25)
 
 	ax.legend(prop={"size": 6})
 	ax.set_axisbelow(True)
@@ -77,7 +57,7 @@ def plot_tsne(x, y, classes, class_indices, x_perturbed=None, y_perturbed=-1, ou
 
 
 
-def plot_heatmap(df, source_class, target_class, output_dir="."):
+def plot_heatmap(df, sample_name, source_class, target_class, output_dir="."):
 	fig, ax = plt.subplots(1, len(df.columns))
 
 	# create user-defined colormap
@@ -132,7 +112,7 @@ def plot_heatmap(df, source_class, target_class, output_dir="."):
 	cbar = ax[-1].figure.colorbar(im, ax=ax[-1], shrink=0.5)
 	cbar.ax.set_ylabel("Expression Level", rotation=-90, va="bottom")
 
-	plt.savefig("%s/%s_to_%s.png" % (output_dir, source_class, target_class))
+	plt.savefig("%s/%s.%s.%s.png" % (output_dir, source_class, target_class, sample_name))
 	plt.close()
 
 
@@ -171,6 +151,9 @@ if __name__ == "__main__":
 	df_train.fillna(value=min_value, inplace=True)
 	df_test.fillna(value=min_value, inplace=True)
 
+	# sanitize class names
+	classes = [utils.clean_label(c) for c in classes]
+
 	# print target class if specified
 	if args.target != -1:
 		print("target class is: %s" % (classes[args.target]))
@@ -206,32 +189,37 @@ if __name__ == "__main__":
 	x_train = scaler.transform(x_train)
 	x_test = scaler.transform(x_test)
 
-	# select classes to include in plot
-	class_indices = list(range(len(classes)))
+	# load perturbed samples
+	if args.target != -1:
+		df_pert = utils.load_dataframe("%s/%s.perturbed_samples.txt" % (args.output_dir, classes[args.target]))
+		x_pert = df_pert.values.T
+	else:
+		df_pert = pd.DataFrame()
 
 	# plot t-SNE visualization if specified
 	if args.tsne:
-		if args.target != -1:
-			x_perturbed = np.load("%s/perturbed_%d.npy" % (args.output_dir, args.target))
+		# select classes to include in plot
+		class_indices = list(range(len(classes)))
 
-			plot_tsne(x_train, y_train, classes, class_indices, x_perturbed, args.target, output_dir=args.output_dir)
-		else:
-			plot_tsne(x_train, y_train, classes, class_indices, output_dir=args.output_dir)
+		plot_tsne(x_train, y_train, classes, class_indices, x_pert, args.target, output_dir=args.output_dir)
 
-	# plot heatmaps for each source-target pair if specified
+	# plot heatmaps if specified
 	if args.heatmap:
-		for i in range(len(classes)):
-			try:
-				# load pertubation data
-				source_class = utils.clean_label(classes[i])
-				target_class = utils.clean_label(classes[args.target])
+		# compute mean of target class
+		mu_target = x_train[y_train == args.target].mean(axis=0)
 
-				df_pert = utils.load_dataframe("%s/%s_to_%s.npy" % (args.output_dir, source_class, target_class))
+		# plot heatmap of each perturbed sample
+		for i, idx in enumerate(df_pert.index):
+			# extract original sample and perturbed sample
+			x_i = x_test[i]
+			x_i_pert = x_pert[i]
 
-				# sort genes by perturbation value
-				df_pert = df_pert.sort_values("P", ascending=False)
+			df = pd.DataFrame({
+				"X": x_i,
+				"P": x_i_pert,
+				"X + P": x_i + x_i_pert,
+				"mu_T": mu_target
+			})
+			df = df.sort_values("P", ascending=False)
 
-				# plot heatmap of perturbation data
-				plot_heatmap(df_pert, source_class, target_class, output_dir=args.output_dir)
-			except FileNotFoundError:
-				print("warning: no data found for %s to %s" % (source_class, target_class))
+			plot_heatmap(df, idx, classes[y_test[i]], classes[args.target], output_dir=args.output_dir)
