@@ -137,7 +137,7 @@ process train_advgan {
 			--labels     ${labels} \
 			--gene-sets  ${gmt_file} \
 			--set        ${gene_set} \
-			--target     ${params.train_advgan.target_class} \
+			--target     ${params.perturb.target_class} \
 			--output-dir .
 
 		rename 's/^discriminator\\//discriminator__/' discriminator/*
@@ -148,9 +148,9 @@ process train_advgan {
 
 
 /**
- * The attack process performs an attack on the AdvGAN model.
+ * The perturb process generates perturbed samples using AdvGAN model.
  */
-process attack {
+process perturb {
 	tag "${dataset}/${gene_set}"
 	publishDir "${params.output.dir}/${dataset}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
@@ -164,7 +164,7 @@ process attack {
 		set val(dataset), val(gene_set), file("*.npy") into PERTURBED_SAMPLES_FROM_ATTACK
 
 	when:
-		params.attack.enabled == true
+		params.perturb.enabled == true
 
 	script:
 		"""
@@ -176,14 +176,14 @@ process attack {
 		rename 's/^discriminator__/discriminator\\//' discriminator__*
 		rename 's/^generator__/generator\\//' generator__*
 
-		attack.py \
+		perturb.py \
 			--train-data   ${data_files[0]} \
 			--train-labels ${labels} \
 			--test-data    ${data_files[0]} \
 			--test-labels  ${labels} \
 			--gene-sets    ${gmt_file} \
 			--set          ${gene_set} \
-			--target       ${params.train_advgan.target_class} \
+			--target       ${params.perturb.target_class} \
 			--output-dir   .
 		"""
 }
@@ -217,7 +217,7 @@ process visualize {
 			--test-labels  ${labels} \
 			--gene-sets    ${gmt_file} \
 			--set          ${gene_set} \
-			--target       ${params.train_advgan.target_class} \
+			--target       ${params.perturb.target_class} \
 			--output-dir   . \
 			--tsne \
 			--heatmap

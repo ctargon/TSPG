@@ -21,7 +21,7 @@ def get_class_mean(x, y, k):
 
 
 
-def attack_mean_diff(x, y, classes, source, target, output_dir="."):
+def perturb_mean_diff(x, y, classes, source, target, output_dir="."):
 	# get mean of source and target class
 	mu_source = get_class_mean(x, y, source)
 	mu_target = get_class_mean(x, y, target)
@@ -40,7 +40,7 @@ def attack_mean_diff(x, y, classes, source, target, output_dir="."):
 
 
 
-def attack_source_target(x, y, classes, source, target, mu_target, output_dir="."):
+def perturb_source_target(x, y, classes, source, target, mu_target, output_dir="."):
 	print("attempting to perturb %s samples to %s..." % (classes[source], classes[target]))
 
 	# extract samples in source class
@@ -111,7 +111,7 @@ def attack_source_target(x, y, classes, source, target, mu_target, output_dir=".
 
 
 
-def attack(x, y, classes, target=-1, batch_size=64, output_dir="."):
+def perturb(x, y, classes, target=-1, batch_size=64, output_dir="."):
 	tf.reset_default_graph()
 
 	x_pl = tf.placeholder(tf.float32, [None, x.shape[-1]])
@@ -256,9 +256,9 @@ if __name__ == "__main__":
 	# get mu and sigma of target class
 	mu_target = get_class_mean(x_train, y_train, args.target)
 
-	# perform attack
-	attack(x_test, y_test, classes, args.target, output_dir=args.output_dir)
+	# perturb all samples to target class
+	perturb(x_test, y_test, classes, args.target, output_dir=args.output_dir)
 
-	# perform source-to-target attack for each source class
+	# perturb samples from each individual class to target
 	for i in range(len(classes)):
-		attack_source_target(x_test, y_test, classes, i, args.target, mu_target, output_dir=args.output_dir)
+		perturb_source_target(x_test, y_test, classes, i, args.target, mu_target, output_dir=args.output_dir)

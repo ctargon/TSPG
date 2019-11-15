@@ -32,8 +32,8 @@ bin/train-advgan.py \
 	--target     ${TARGET_CLASS} \
 	--output-dir ${OUTPUT_DIR}
 
-# perform attack on AdvGAN
-bin/attack.py \
+# generate perturbed samples using AdvGAN model
+bin/perturb.py \
 	--train-data   example.emx.txt \
 	--train-labels example.labels.txt \
 	--test-data    example.emx.txt \
