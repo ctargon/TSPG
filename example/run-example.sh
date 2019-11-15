@@ -1,6 +1,11 @@
 #!/bin/bash
 # Example usage of TSPG on a synthetic dataset.
 
+TRAIN_DATA="example.emx.txt"
+TRAIN_LABELS="example.labels.txt"
+TEST_DATA="example.emx.txt"
+TEST_LABELS="example.labels.txt"
+GMT_FILE="example.genesets.txt"
 GENE_SET="gene-set-000"
 TARGET_CLASS="0"
 OUTPUT_DIR="example/output/${GENE_SET}"
@@ -17,41 +22,41 @@ bin/make-input-data.py \
 
 # train target model on a gene set
 bin/train-target.py \
-	--dataset    example.emx.txt \
-	--labels     example.labels.txt \
-	--gene-sets  example.genesets.txt \
+	--dataset    ${TRAIN_DATA} \
+	--labels     ${TRAIN_LABELS} \
+	--gene-sets  ${GMT_FILE} \
 	--set        ${GENE_SET} \
 	--output-dir ${OUTPUT_DIR}
 
 # train AdvGAN model on a gene set
 bin/train-advgan.py \
-	--dataset    example.emx.txt \
-	--labels     example.labels.txt \
-	--gene-sets  example.genesets.txt \
+	--dataset    ${TRAIN_DATA} \
+	--labels     ${TRAIN_LABELS} \
+	--gene-sets  ${GMT_FILE} \
 	--set        ${GENE_SET} \
 	--target     ${TARGET_CLASS} \
 	--output-dir ${OUTPUT_DIR}
 
 # generate perturbed samples using AdvGAN model
 bin/perturb.py \
-	--train-data   example.emx.txt \
-	--train-labels example.labels.txt \
-	--test-data    example.emx.txt \
-	--test-labels  example.labels.txt \
-	--gene-sets    example.genesets.txt \
+	--train-data   ${TRAIN_DATA} \
+	--train-labels ${TRAIN_LABELS} \
+	--test-data    ${TEST_DATA} \
+	--test-labels  ${TEST_LABELS} \
+	--gene-sets    ${GMT_FILE} \
 	--set          ${GENE_SET} \
 	--target       ${TARGET_CLASS} \
 	--output-dir   ${OUTPUT_DIR}
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
 bin/visualize.py \
-	--train-data   example.emx.txt \
-	--train-labels example.labels.txt \
-	--test-data    example.emx.txt \
-	--test-labels  example.labels.txt \
-	--gene-sets    example.genesets.txt \
+	--train-data   ${TRAIN_DATA} \
+	--train-labels ${TRAIN_LABELS} \
+	--test-data    ${TEST_DATA} \
+	--test-labels  ${TEST_LABELS} \
+	--gene-sets    ${GMT_FILE} \
 	--set          ${GENE_SET} \
 	--target       ${TARGET_CLASS} \
+	--output-dir   ${OUTPUT_DIR} \
 	--tsne \
-	--heatmap \
-	--output-dir   ${OUTPUT_DIR}
+	--heatmap
