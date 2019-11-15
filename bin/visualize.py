@@ -209,7 +209,7 @@ if __name__ == "__main__":
 		mu_target = x_train[y_train == args.target].mean(axis=0)
 
 		# plot heatmap of each perturbed sample
-		for i, idx in enumerate(df_pert.index):
+		for i, sample_name in enumerate(df_pert.columns):
 			# extract original sample and perturbed sample
 			x_i = x_test[i]
 			x_i_pert = x_pert[i]
@@ -222,4 +222,9 @@ if __name__ == "__main__":
 			})
 			df = df.sort_values("P", ascending=False)
 
-			plot_heatmap(df, utils.sanitize(idx), classes[y_test[i]], classes[args.target], output_dir=args.output_dir)
+			# create heatmap of original and perturbed samples
+			sample_name = utils.sanitize(sample_name)
+			source_class = classes[y_test[i]]
+			target_class = classes[args.target]
+
+			plot_heatmap(df, sample_name, source_class, target_class, output_dir=args.output_dir)
