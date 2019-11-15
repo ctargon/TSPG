@@ -16,7 +16,31 @@ from target_models import Target_A as target_model
 
 
 
-def attack_source_target(x, y, classes, source, target, target_mu, output_dir="."):
+def get_class_mean(x, y, k):
+	return x[np.argmax(y, axis=1) == k].mean(axis=0)
+
+
+
+def attack_mean_diff(x, y, classes, source, target, output_dir="."):
+	# get mean of source and target class
+	mu_source = get_class_mean(x, y, source)
+	mu_target = get_class_mean(x, y, target)
+
+	# save first perturbed sample to dataframe
+	df_pert = pd.DataFrame(
+		data=np.vstack([mu_source, mu_target - mu_source, mu_target, mu_target]).T,
+		index=genes,
+		columns=["X", "P", "X_adv", "mu_T"]
+	)
+
+	source_class = utils.clean_label(classes[source])
+	target_class = utils.clean_label(classes[target])
+
+	utils.save_dataframe("%s/%s_to_%s.txt" % (output_dir, source_class, target_class), df_pert)
+
+
+
+def attack_source_target(x, y, classes, source, target, mu_target, output_dir="."):
 	print("attempting to perturb %s samples to %s..." % (classes[source], classes[target]))
 
 	# extract samples in source class
@@ -75,7 +99,7 @@ def attack_source_target(x, y, classes, source, target, target_mu, output_dir=".
 
 	# save first perturbed sample to dataframe
 	df_pert = pd.DataFrame(
-		data=np.vstack([x_source[0], p[0], x_pert[0], target_mu]).T,
+		data=np.vstack([x_source[0], p[0], x_pert[0], mu_target]).T,
 		index=genes,
 		columns=["X", "P", "X_adv", "mu_T"]
 	)
@@ -87,11 +111,11 @@ def attack_source_target(x, y, classes, source, target, target_mu, output_dir=".
 
 
 
-def attack(x_train, y_train, target=-1, batch_size=64, output_dir="."):
+def attack(x, y, classes, target=-1, batch_size=64, output_dir="."):
 	tf.reset_default_graph()
 
-	x_pl = tf.placeholder(tf.float32, [None, x_train.shape[-1]])
-	y_pl = tf.placeholder(tf.float32, [None, y_train.shape[-1]])
+	x_pl = tf.placeholder(tf.float32, [None, x.shape[-1]])
+	y_pl = tf.placeholder(tf.float32, [None, y.shape[-1]])
 	is_training = tf.placeholder(tf.bool, [])
 	is_training_target = tf.placeholder(tf.bool, [])
 
@@ -106,7 +130,7 @@ def attack(x_train, y_train, target=-1, batch_size=64, output_dir="."):
 	x_perturbed = tf.clip_by_value(x_perturbed, 0, 1)
 
 	# instantiate target model, create graphs for original and perturbed data
-	f = target_model(n_input=x_train.shape[-1], n_classes=y_train.shape[-1])
+	f = target_model(n_input=x.shape[-1], n_classes=y.shape[-1])
 	f_real_logits, f_real_probs = f.Model(x_pl, is_training_target)
 	f_fake_logits, f_fake_probs = f.Model(x_perturbed, is_training_target)
 
@@ -128,10 +152,10 @@ def attack(x_train, y_train, target=-1, batch_size=64, output_dir="."):
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 	scores = []
 	x_pert = []
-	n_batches = math.ceil(len(x_train) / batch_size)
+	n_batches = math.ceil(len(x) / batch_size)
 
 	for i in range(n_batches):
-		batch_x, batch_y_og = utils.next_batch(x_train, y_train, batch_size, i)
+		batch_x, batch_y_og = utils.next_batch(x, y, batch_size, i)
 
 		if is_targeted:
 			targets = np.full((batch_y_og.shape[0],), target)
@@ -229,13 +253,12 @@ if __name__ == "__main__":
 	x_train = scaler.transform(x_train)
 	x_test = scaler.transform(x_test)
 
-	# get mu and sigma of target class feature vectors
-	target_data = x_train[np.argmax(y_train, axis=1) == args.target]
-	target_mu = np.mean(target_data, axis=0)
+	# get mu and sigma of target class
+	mu_target = get_class_mean(x_train, y_train, args.target)
 
 	# perform attack
-	attack(x_test, y_test, target=args.target, output_dir=args.output_dir)
+	attack(x_test, y_test, classes, args.target, output_dir=args.output_dir)
 
 	# perform source-to-target attack for each source class
 	for i in range(len(classes)):
-		attack_source_target(x_test, y_test, classes, i, args.target, target_mu, output_dir=args.output_dir)
+		attack_source_target(x_test, y_test, classes, i, args.target, mu_target, output_dir=args.output_dir)
