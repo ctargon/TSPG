@@ -60,40 +60,13 @@ def plot_tsne(x, y, classes, class_indices, x_pert=None, y_pert=-1, output_dir="
 def plot_heatmap(df, sample_name, source_class, target_class, output_dir="."):
 	fig, ax = plt.subplots(1, len(df.columns))
 
-	# create user-defined colormap
-	cdict = {
-		"red": (
-			(0.0, 0.0, 0.0),
-			(0.25, 0.0, 0.0),
-			(0.5, 0.8, 1.0),
-			(0.75, 1.0, 1.0),
-			(1.0, 0.4, 1.0)
-		),
-		"green": (
-			(0.0, 0.0, 0.0),
-			(0.25, 0.0, 0.0),
-			(0.5, 0.9, 0.9),
-			(0.75, 0.0, 0.0),
-			(1.0, 0.0, 0.0)
-		),
-		"blue": (
-			(0.0, 0.0, 0.4),
-			(0.25, 1.0, 1.0),
-			(0.5, 1.0, 0.8),
-			(0.75, 0.0, 0.0),
-			(1.0, 0.0, 0.0)
-		)
-	}
-	blue_red = mcol.LinearSegmentedColormap("BlueRed1", cdict)
-	plt.register_cmap(name="BlueRed", cmap=blue_red)
-
 	for i in range(len(df.columns)):
 		# get the vector, then tile it some so it is visible if very long
 		column = np.expand_dims(df[df.columns[i]], -1)
 		column = np.tile(column, (1, max(1, int(column.shape[0] / 10))))
 
 		# plot tiled vector as heatmap image
-		im = ax[i].imshow(column, cmap="BlueRed")
+		im = ax[i].imshow(column, cmap="seismic")
 		im.set_clim(-1, 1)
 
 		ax[i].set_title(df.columns[i])
