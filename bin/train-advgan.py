@@ -189,9 +189,13 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 		loss_target_norm /= n_batches
 
 		print("epoch %d:" % (epoch + 1))
-		print("  loss_D: %.3f, loss_G_fake: %.3f" % (loss_D, loss_G_fake))
-		print("  loss_perturb: %.3f, loss_adv: %.3f" % (loss_perturb, loss_adv))
-		print("  loss_target_norm: %.3f" % (loss_target_norm))
+		print("  loss_D: %.3f, loss_G_fake: %.3f, loss_perturb: %.3f, loss_adv: %.3f, loss_target_norm: %.3f" % (
+			loss_D,
+			loss_G_fake,
+			loss_perturb,
+			loss_adv,
+			loss_target_norm
+		))
 		print()
 
 		if epoch % 10 == 0:

@@ -3,6 +3,7 @@
 
 	ref: https://arxiv.org/pdf/1801.02610.pdf
 """
+import logging
 import os
 import tensorflow as tf
 
@@ -10,17 +11,19 @@ import utils
 
 
 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+tf.get_logger().setLevel(logging.ERROR)
+
+
+
 class Target:
-	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256,\
-					output_dir="."):
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, output_dir="."):
 		self.lr = lr
 		self.epochs = epochs
 		self.n_input = n_input
 		self.n_classes = n_classes
 		self.batch_size = batch_size
 		self.output_dir = output_dir
-
-		os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 	def train_model(self, x_train, y_train, model_name):
 		tf.reset_default_graph()
@@ -30,20 +33,20 @@ class Target:
 		y = tf.placeholder(tf.float32, [None, self.n_classes])
 		training = tf.placeholder(tf.bool, [])
 
-		# define compute graph
+		# define computational graph
 		logits, _ = self.Model(x, training)
 
 		# define cost
 		cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=y))
 
-		# optimizer
+		# define optimizer
 		update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 		with tf.control_dependencies(update_ops):
 			optimizer = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(cost)
 
 		saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=model_name))
 
-		# Initializing the variables
+		# initialize the variables
 		init = tf.global_variables_initializer()
 
 		sess = tf.Session()
@@ -81,10 +84,8 @@ class Target:
 		sess = tf.Session()
 		saver.restore(sess, "%s/target_model/%s.ckpt" % (self.output_dir, model_name))
 
-		# Test model
+		# compute accuracy
 		correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
-
-		# Calculate accuracy
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 		scores = []
 
@@ -100,15 +101,9 @@ class Target:
 
 
 class Target_A(Target):
-	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, \
-					output_dir="."):
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, output_dir="."):
 		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, output_dir)
 
-	# USAGE:
-	# 		- encoder network for vae
-	# PARAMS:
-	#	x: input data sample
-	#	h_hidden: LIST of num. neurons per hidden layer
 	def Model(self, x, training):
 		with tf.variable_scope("Model_A", reuse=tf.AUTO_REUSE):
 			fc1 = tf.layers.dense(inputs=x, units=1024, activation=tf.nn.relu)
@@ -130,15 +125,9 @@ class Target_A(Target):
 
 
 class Target_B(Target):
-	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, \
-					output_dir="."):
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, output_dir="."):
 		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, output_dir)
 
-	# USAGE:
-	# 		- encoder network for vae
-	# PARAMS:
-	#	x: input data sample
-	#	h_hidden: LIST of num. neurons per hidden layer
 	def Model(self, x, training):
 		with tf.variable_scope("Model_B", reuse=tf.AUTO_REUSE):
 			fc1 = tf.layers.dense(inputs=x, units=1024, activation=None)
@@ -165,15 +154,9 @@ class Target_B(Target):
 
 
 class Target_C(Target):
-	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, \
-					output_dir="."):
+	def __init__(self, lr=0.001, epochs=50, n_input=28, n_classes=10, batch_size=256, output_dir="."):
 		Target.__init__(self, lr, epochs, n_input, n_classes, batch_size, output_dir)
 
-	# USAGE:
-	# 		- encoder network for vae
-	# PARAMS:
-	#	x: input data sample
-	#	h_hidden: LIST of num. neurons per hidden layer
 	def Model(self, x, training):
 		with tf.variable_scope("Model_C", reuse=tf.AUTO_REUSE):
 			fc1 = tf.layers.dense(inputs=x, units=1024, activation=None)
