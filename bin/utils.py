@@ -119,7 +119,7 @@ def next_batch(x, y, batch_size, index):
 
 
 
-def clean_label(label):
+def sanitize(label):
 	label = label.replace(" ", "_")
 	label = label.replace(".", "_")
 	label = label.replace("(", "")

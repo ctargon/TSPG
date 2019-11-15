@@ -152,7 +152,7 @@ if __name__ == "__main__":
 	df_test.fillna(value=min_value, inplace=True)
 
 	# sanitize class names
-	classes = [utils.clean_label(c) for c in classes]
+	classes = [utils.sanitize(c) for c in classes]
 
 	# print target class if specified
 	if args.target != -1:
@@ -222,4 +222,4 @@ if __name__ == "__main__":
 			})
 			df = df.sort_values("P", ascending=False)
 
-			plot_heatmap(df, idx, classes[y_test[i]], classes[args.target], output_dir=args.output_dir)
+			plot_heatmap(df, utils.sanitize(idx), classes[y_test[i]], classes[args.target], output_dir=args.output_dir)
