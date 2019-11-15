@@ -27,7 +27,7 @@ DATA_TXT_FILES
 	.mix(LABEL_FILES_FOR_TXT)
 	.groupTuple(size: 2)
 	.map { [it[0], it[1].sort()] }
-	.map { [it[0], it[1][1], it[1][0]] }
+	.map { [it[0], it[1][0], it[1][1]] }
 	.set { DATA_TXT_COMBINED }
 
 DATA_NPY_FILES
@@ -63,7 +63,7 @@ DATASETS
 	.into {
 		INPUTS_FOR_TRAIN_TARGET;
 		INPUTS_FOR_TRAIN_ADVGAN;
-		INPUTS_FOR_ATTACK;
+		INPUTS_FOR_PERTURB;
 		INPUTS_FOR_VISUALIZE
 	}
 
@@ -103,7 +103,7 @@ process train_target {
 TARGET_MODELS_FROM_TRAIN_TARGET
 	.into {
 		TARGET_MODELS_FOR_TRAIN_ADVGAN;
-		TARGET_MODELS_FOR_ATTACK
+		TARGET_MODELS_FOR_PERTURB
 	}
 
 
@@ -120,8 +120,7 @@ process train_advgan {
 		set val(dataset), val(gene_set), file(target_model_files) from TARGET_MODELS_FOR_TRAIN_ADVGAN
 
 	output:
-		set val(dataset), val(gene_set), file("discriminator__*") into DISCRIMINATORS_FOR_ATTACK
-		set val(dataset), val(gene_set), file("generator__*") into GENERATORS_FOR_ATTACK
+		set val(dataset), val(gene_set), file("generator__*") into GENERATORS_FOR_PERTURB
 
 	when:
 		params.train_advgan.enabled == true
@@ -140,7 +139,6 @@ process train_advgan {
 			--target     ${params.perturb.target_class} \
 			--output-dir .
 
-		rename 's/^discriminator\\//discriminator__/' discriminator/*
 		rename 's/^generator\\//generator__/' generator/*
 		"""
 }
@@ -155,13 +153,13 @@ process perturb {
 	publishDir "${params.output.dir}/${dataset}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
 	input:
-		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_ATTACK
-		set val(dataset), val(gene_set), file(target_model_files) from TARGET_MODELS_FOR_ATTACK
-		set val(dataset), val(gene_set), file(discriminator_files) from DISCRIMINATORS_FOR_ATTACK
-		set val(dataset), val(gene_set), file(generator_files) from GENERATORS_FOR_ATTACK
+		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_PERTURB
+		set val(dataset), val(gene_set), file(target_model_files) from TARGET_MODELS_FOR_PERTURB
+		set val(dataset), val(gene_set), file(generator_files) from GENERATORS_FOR_PERTURB
 
 	output:
-		set val(dataset), val(gene_set), file("*.npy") into PERTURBED_SAMPLES_FROM_ATTACK
+		set val(dataset), val(gene_set), file("*.perturbed_means.txt") into PERTURBED_MEANS_FROM_PERTURB
+		set val(dataset), val(gene_set), file("*.perturbed_samples.txt") into PERTURBED_SAMPLES_FROM_PERTURB
 
 	when:
 		params.perturb.enabled == true
@@ -169,11 +167,9 @@ process perturb {
 	script:
 		"""
 		mkdir -p target_model/
-		mkdir -p discriminator/
 		mkdir -p generator/
 
 		rename 's/^target_model__/target_model\\//' target_model__*
-		rename 's/^discriminator__/discriminator\\//' discriminator__*
 		rename 's/^generator__/generator\\//' generator__*
 
 		perturb.py \
@@ -200,7 +196,7 @@ process visualize {
 
 	input:
 		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_VISUALIZE
-		set val(dataset), val(gene_set), file(perturbed_sample_files) from PERTURBED_SAMPLES_FROM_ATTACK
+		set val(dataset), val(gene_set), file(perturbed_sample_files) from PERTURBED_SAMPLES_FROM_PERTURB
 
 	output:
 		file("*.png")
