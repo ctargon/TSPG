@@ -111,7 +111,7 @@ if __name__ == "__main__":
 	parser.add_argument("--test-labels", help="test labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--set", help="specific gene set to run")
-	parser.add_argument("--target", help="target class", type=int, default=-1)
+	parser.add_argument("--target", help="target class")
 	parser.add_argument("--output-dir", help="Output directory", default=".")
 
 	args = parser.parse_args()
@@ -137,9 +137,16 @@ if __name__ == "__main__":
 	# sanitize class names
 	classes = [utils.sanitize(c) for c in classes]
 
-	# print target class if specified
-	if args.target != -1:
-		print("target class is: %s" % (classes[args.target]))
+	# determine target class
+	try:
+		if args.target == None:
+			args.target = -1
+		else:
+			args.target = classes.index(args.target)
+			print("target class is: %s" % (classes[args.target]))
+	except ValueError:
+		print("error: class %s not found in dataset" % (args.target))
+		sys.exit(1)
 
 	# load gene sets file if it was provided
 	if args.gene_sets != None:

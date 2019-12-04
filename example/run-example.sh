@@ -7,8 +7,11 @@ TEST_DATA="example.emx.txt"
 TEST_LABELS="example.labels.txt"
 GMT_FILE="example.genesets.txt"
 GENE_SET="gene-set-000"
-TARGET_CLASS="0"
+TARGET_CLASS="class-00"
 OUTPUT_DIR="example/output/${GENE_SET}"
+
+# use conda environment
+source activate tspg
 
 # remove old output data
 rm -rf ${OUTPUT_DIR}
@@ -60,3 +63,6 @@ bin/visualize.py \
 	--output-dir   ${OUTPUT_DIR} \
 	--tsne \
 	--heatmap
+
+# exit conda environment
+source deactivate
