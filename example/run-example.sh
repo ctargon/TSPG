@@ -21,7 +21,8 @@ bin/make-input-data.py \
 	--n-samples 1000 \
 	--n-genes 200 \
 	--n-classes 10 \
-	--n-sets 5
+	--n-sets 5 \
+	--visualize
 
 # train target model on a gene set
 bin/train-target.py \
@@ -63,6 +64,3 @@ bin/visualize.py \
 	--output-dir   ${OUTPUT_DIR} \
 	--tsne \
 	--heatmap
-
-# exit conda environment
-source deactivate

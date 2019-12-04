@@ -2,7 +2,6 @@
 
 import argparse
 import matplotlib.cm as cm
-import matplotlib.colors as mcol
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -32,26 +31,17 @@ def plot_tsne(x, y, classes, class_indices, x_pert=None, y_pert=-1, output_dir="
 
 	for k in class_indices:
 		indices = (y == k)
-
 		ax.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75)
 
-		if y_pert != -1:
+	if y_pert != -1:
+		for k in class_indices:
+			indices = (y == k)
 			label = "%s (perturbed)" % (classes[k])
 			ax.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25)
 
-	ax.legend(prop={"size": 6})
-	ax.set_axisbelow(True)
-	ax.spines["top"].set_visible(False)
-	ax.spines["right"].set_visible(False)
-	ax.spines["left"].set_visible(False)
-	ax.spines["bottom"].set_visible(False)
-	ax.get_xaxis().set_ticklabels([])
-	ax.get_yaxis().set_ticklabels([])
-	ax.xaxis.set_ticks_position("none")
-	ax.yaxis.set_ticks_position("none")
-	plt.subplots_adjust(right=0.7)
-	plt.grid(b=True, which="major", alpha=0.3)
-
+	plt.subplots_adjust(right=0.70)
+	ax.set_axis_off()
+	ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
 	plt.savefig("%s/tsne.png" % (output_dir))
 	plt.close()
 
@@ -196,8 +186,8 @@ if __name__ == "__main__":
 
 			df = pd.DataFrame({
 				"X": x_i,
-				"P": x_i_pert,
-				"X + P": x_i + x_i_pert,
+				"P": x_i_pert - x_i,
+				"X + P": x_i_pert,
 				"mu_T": mu_target
 			})
 			df = df.sort_values("P", ascending=False)
