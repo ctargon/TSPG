@@ -29,9 +29,6 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# create synthetic dataset
-	n_informative = args.n_genes // 10
-	n_redundant = args.n_genes - n_informative
-
 	x, y = sklearn.datasets.make_blobs(
 		args.n_samples,
 		args.n_genes,
