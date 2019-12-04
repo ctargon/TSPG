@@ -57,9 +57,11 @@ if __name__ == "__main__":
 	x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.1)
 
 	# normalize dataset
-	Scaler = sklearn.preprocessing.MinMaxScaler
-	x_train = Scaler().fit_transform(x_train)
-	x_test = Scaler().fit_transform(x_test)
+	scaler = sklearn.preprocessing.MinMaxScaler()
+	scaler.fit(x_train)
+
+	x_train = scaler.transform(x_train)
+	x_test = scaler.transform(x_test)
 
 	clf = Target(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=32, output_dir=args.output_dir)
 	clf.train(x_train, y_train)
