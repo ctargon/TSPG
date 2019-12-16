@@ -130,7 +130,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	try:
 		saver.restore(sess, tf.train.latest_checkpoint("%s/target_model" % (output_dir)))
 	except:
-		print("make sure to train the target model first...")
+		print("error: target model not found")
 		sys.exit(1)
 
 	n_batches = int(len(y_train) / batch_size)
@@ -234,7 +234,6 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 
 	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
 
-	print("finished training, saving weights")
 	g_saver.save(sess, "%s/generator/generator.ckpt" % (output_dir))
 	d_saver.save(sess, "%s/discriminator/discriminator.ckpt" % (output_dir))
 

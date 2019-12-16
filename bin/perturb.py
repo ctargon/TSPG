@@ -95,7 +95,7 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir="."):
 		scores.append(score)
 		perturbations.append(batch_p)
 
-	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
+	print("perturbation accuracy: %0.3f" % (sum(scores) / len(scores)))
 
 	# return matrix of perturbed samples
 	return np.vstack(perturbations).T

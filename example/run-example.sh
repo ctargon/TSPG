@@ -19,10 +19,14 @@ rm -rf ${OUTPUT_DIR}
 # create synthetic input data
 bin/make-input-data.py \
 	--n-samples 1000 \
-	--n-genes 200 \
+	--n-genes   200 \
 	--n-classes 10 \
-	--n-sets 5 \
+	--n-sets    5 \
 	--visualize
+
+echo
+echo "PHASE 1: TRAIN TARGET MODEL"
+echo
 
 # train target model on a gene set
 bin/train-target.py \
@@ -32,6 +36,10 @@ bin/train-target.py \
 	--set        ${GENE_SET} \
 	--output-dir ${OUTPUT_DIR}
 
+echo
+echo "PHASE 2: TRAIN PERTURBATION GENERATOR"
+echo
+
 # train AdvGAN model on a gene set
 bin/train-advgan.py \
 	--dataset    ${TRAIN_DATA} \
@@ -40,6 +48,10 @@ bin/train-advgan.py \
 	--set        ${GENE_SET} \
 	--target     ${TARGET_CLASS} \
 	--output-dir ${OUTPUT_DIR}
+
+echo
+echo "PHASE 3: GENERATE SAMPLE PERTURBATIONS"
+echo
 
 # generate perturbed samples using AdvGAN model
 bin/perturb.py \
@@ -51,6 +63,10 @@ bin/perturb.py \
 	--set          ${GENE_SET} \
 	--target       ${TARGET_CLASS} \
 	--output-dir   ${OUTPUT_DIR}
+
+echo
+echo "PHASE 4: VISUALIZE SAMPLE PERTURBATIONS"
+echo
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
 bin/visualize.py \
