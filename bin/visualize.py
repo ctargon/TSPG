@@ -92,7 +92,7 @@ if __name__ == "__main__":
 	parser.add_argument("--tsne", help="plot t-SNE of samples", action="store_true")
 	parser.add_argument("--heatmap", help="plot heatmaps of sample perturbations", action="store_true")
 	parser.add_argument("--target", help="target class")
-	parser.add_argument("--output-dir", help="Output directory", default=".")
+	parser.add_argument("--output-dir", help="output directory", default=".")
 
 	args = parser.parse_args()
 
@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
 	# load perturbed samples
 	if args.target != -1:
-		df_pert = utils.load_dataframe("%s/%s.perturbed_samples.txt" % (args.output_dir, classes[args.target]))
+		df_pert = utils.load_dataframe("%s/%s.perturbations.samples.txt" % (args.output_dir, classes[args.target]))
 		x_pert = df_pert.values.T
 	else:
 		df_pert = pd.DataFrame()
@@ -182,12 +182,12 @@ if __name__ == "__main__":
 		for i, sample_name in enumerate(df_pert.columns):
 			# extract original sample and perturbed sample
 			x_i = x_test[i]
-			x_i_pert = x_pert[i]
+			p_i = x_pert[i]
 
 			df = pd.DataFrame({
 				"X": x_i,
-				"P": x_i_pert - x_i,
-				"X + P": x_i_pert,
+				"P": p_i,
+				"X + P": x_i + p_i,
 				"mu_T": mu_target
 			})
 			df = df.sort_values("P", ascending=False)

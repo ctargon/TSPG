@@ -22,7 +22,7 @@ def get_class_mean(x, y, k):
 
 
 def perturb_mean_diff(x, y, target, classes):
-	perturbed_means = []
+	perturbations = []
 
 	for k in range(len(classes)):
 		# get mean of source and target class
@@ -30,9 +30,9 @@ def perturb_mean_diff(x, y, target, classes):
 		mu_target = get_class_mean(x, y, target)
 
 		# compute difference between source and target mean
-		perturbed_means.append(mu_target - mu_source)
+		perturbations.append(mu_target - mu_source)
 
-	return np.vstack(perturbed_means).T
+	return np.vstack(perturbations).T
 
 
 
@@ -77,7 +77,7 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir="."):
 	# generate perturbed samples from original samples
 	n_batches = math.ceil(len(x) / batch_size)
 	scores = []
-	x_pert = []
+	perturbations = []
 
 	for i in range(n_batches):
 		batch_x, batch_y = utils.next_batch(x, y, batch_size, i)
@@ -93,12 +93,12 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir="."):
 			is_training_target: False
 		})
 		scores.append(score)
-		x_pert.append(batch_x_pert)
+		perturbations.append(batch_p)
 
 	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
 
 	# return matrix of perturbed samples
-	return np.vstack(x_pert).T
+	return np.vstack(perturbations).T
 
 
 
@@ -184,23 +184,23 @@ if __name__ == "__main__":
 	# perturb each class mean to the target class
 	mu_pert = perturb_mean_diff(x_test, y_test, args.target, classes)
 
-	# save perturbed means to dataframe
+	# save mean peturbations to dataframe
 	df_pert = pd.DataFrame(
 		data=mu_pert,
 		index=genes,
 		columns=classes
 	)
 
-	utils.save_dataframe("%s/%s.perturbed_means.txt" % (args.output_dir, classes[args.target]), df_pert)
+	utils.save_dataframe("%s/%s.perturbations.means.txt" % (args.output_dir, classes[args.target]), df_pert)
 
 	# perturb all samples to target class
-	x_pert = perturb_advgan(x_test, y_test, args.target, output_dir=args.output_dir)
+	perturbations = perturb_advgan(x_test, y_test, args.target, output_dir=args.output_dir)
 
-	# save perturbed samples to dataframe
+	# save sample perturbations to dataframe
 	df_pert = pd.DataFrame(
-		data=x_pert,
+		data=perturbations,
 		index=genes,
 		columns=df_test.index
 	)
 
-	utils.save_dataframe("%s/%s.perturbed_samples.txt" % (args.output_dir, classes[args.target]), df_pert)
+	utils.save_dataframe("%s/%s.perturbations.samples.txt" % (args.output_dir, classes[args.target]), df_pert)
