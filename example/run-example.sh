@@ -10,11 +10,16 @@ GENE_SET="gene-set-000"
 TARGET_CLASS="class-00"
 OUTPUT_DIR="example/output/${GENE_SET}"
 
+# terminate script if any stage fails
+set -e
+
 # use conda environment
 source activate tspg
 
-# remove old output data
+# initialize output directory
 rm -rf ${OUTPUT_DIR}
+
+mkdir -p ${OUTPUT_DIR}
 
 # create synthetic input data
 bin/make-input-data.py \
