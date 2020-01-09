@@ -63,7 +63,7 @@ class Target:
 
 				avg_cost += c / n_batches
 
-			print("Epoch: %04d, cost=%f" % (epoch + 1, avg_cost))
+			print("epoch: %4d, cost: %8.3f" % (epoch + 1, avg_cost))
 
 		path = "%s/target_model" % (self.output_dir)
 		os.makedirs(path, exist_ok=True)
@@ -95,7 +95,7 @@ class Target:
 			score, prob = sess.run([accuracy, probs], {x: batch_x, y: batch_y, training: False})
 			scores.append(score)
 
-		print("accuracy of test set: %0.3f" % (sum(scores) / len(scores)))
+		print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
 		sess.close()
 
 

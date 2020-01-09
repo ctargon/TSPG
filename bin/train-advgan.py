@@ -49,8 +49,10 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	is_training = tf.placeholder(tf.bool, [])
 	target_is_training = tf.placeholder(tf.bool, [])
 
-	#-----------------------------------------------------------------------------------
+	#---------------------------------------------------------------------------
 	# MODEL DEFINITIONS
+	#---------------------------------------------------------------------------
+
 	if target != -1:
 		is_targeted = True
 	else:
@@ -77,8 +79,10 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	d_labels_real = tf.ones_like(d_real_probs) * (1 - smooth)
 	d_labels_fake = tf.zeros_like(d_fake_probs)
 
-	#-----------------------------------------------------------------------------------
+	#---------------------------------------------------------------------------
 	# LOSS DEFINITIONS
+	#---------------------------------------------------------------------------
+
 	# discriminator loss
 	d_loss_real = tf.losses.mean_squared_error(predictions=d_real_probs, labels=d_labels_real)
 	d_loss_fake = tf.losses.mean_squared_error(predictions=d_fake_probs, labels=d_labels_fake)
@@ -103,7 +107,6 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	beta = 1.0
 	g_loss = l_adv + alpha*g_loss_fake + l_tar_dist + beta*l_perturb
 
-	# ----------------------------------------------------------------------------------
 	# gather variables for training/restoring
 	t_vars = tf.trainable_variables()
 	f_vars = [var for var in t_vars if "Model_A" in var.name]
@@ -121,8 +124,11 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 	g_saver = tf.train.Saver(g_vars)
 	d_saver = tf.train.Saver(d_vars)
 
-	init = tf.global_variables_initializer()
+	#---------------------------------------------------------------------------
+	# TRAINING
+	#---------------------------------------------------------------------------
 
+	init = tf.global_variables_initializer()
 	sess = tf.Session()
 	sess.run(init)
 
@@ -133,6 +139,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 		print("error: target model not found")
 		sys.exit(1)
 
+	# train the advgan model
 	n_batches = int(len(y_train) / batch_size)
 
 	for epoch in range(epochs):
@@ -157,7 +164,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 				targets = np.full((batch_y.shape[0],), target)
 				batch_y = np.eye(y_train.shape[-1])[targets]
 
-			# train the discriminator first n times
+			# train the discriminator n times
 			for _ in range(1):
 				_, loss_D_batch = sess.run([d_opt, d_loss], feed_dict={
 					x_pl: batch_x,
@@ -189,7 +196,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 		loss_target_norm /= n_batches
 
 		print("epoch %d:" % (epoch + 1))
-		print("  loss_D: %.3f, loss_G_fake: %.3f, loss_perturb: %.3f, loss_adv: %.3f, loss_target_norm: %.3f" % (
+		print("  loss_D: %8.3f, loss_G_fake: %8.3f, loss_perturb: %8.3f, loss_adv: %8.3f, loss_target_norm: %8.3f" % (
 			loss_D,
 			loss_G_fake,
 			loss_perturb,
@@ -202,37 +209,20 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
 			g_saver.save(sess, "%s/generator/generator.ckpt" % (output_dir))
 			d_saver.save(sess, "%s/discriminator/discriminator.ckpt" % (output_dir))
 
-	# quick sample to see some outputs
-	rawpert, pert, fake_l, real_l = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], feed_dict={
-		x_pl: x_test[:32],
+	# compute perturbation accuracy
+	_, pert, y_fake, y_real = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], feed_dict={
+		x_pl: x_test,
 		is_training: False,
 		target_is_training: False
 	})
 
-	print("Original Labels:")
-	print(np.argmax(y_test[:32], axis=1))
-	print("Original Predictions:")
-	print(np.argmax(real_l, axis=1))
-	print("Perturbed Predictions:")
-	print(np.argmax(fake_l, axis=1))
+	score = sum(np.argmax(y_fake, axis=1) == target) / len(y_fake)
 
-	# evaluate the test set
-	correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(y_pl, 1))
-	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-	scores = []
-	total_batches_test = int(len(y_test) / batch_size)
-
-	for i in range(total_batches_test):
-		batch_x, batch_y = utils.next_batch(x_test, y_test, batch_size, i)
-		score, x_pert = sess.run([accuracy, x_perturbed], feed_dict={
-			x_pl: batch_x,
-			y_pl: batch_y,
-			is_training: False,
-			target_is_training: False
-		})
-		scores.append(score)
-
-	print("test accuracy: %0.3f" % (sum(scores) / len(scores)))
+	print("original labels:       ", np.argmax(y_test[:32], axis=1))
+	print("original predictions:  ", np.argmax(y_real[:32], axis=1))
+	print("perturbed predictions: ", np.argmax(y_fake[:32], axis=1))
+	print()
+	print("perturbation accuracy: %0.3f" % (score))
 
 	g_saver.save(sess, "%s/generator/generator.ckpt" % (output_dir))
 	d_saver.save(sess, "%s/discriminator/discriminator.ckpt" % (output_dir))

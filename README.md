@@ -1,8 +1,8 @@
-Code for the paper "Cellular State Transformations using Generative Adversarial Networks" https://arxiv.org/abs/1907.00118
-
 # Transcriptome State Perturbation Generator
 
 This repository contains the code for the Transcriptome State Perturbation Generator (TSPG). TSPG is an experimental tool for discovering biomarker genes using gene expression data and adversarial learning.
+
+View the paper "Cellular State Transformations using Generative Adversarial Networks" on arXiv: https://arxiv.org/abs/1907.00118
 
 ## Installation
 
@@ -69,3 +69,19 @@ The __gene set list__ should contain the name and genes for a gene set on each l
 GeneSet1	Gene1	Gene2	Gene3
 GeneSet2	Gene2	Gene4	Gene5	Gene6
 ```
+
+### Phase 1: Train Target Model
+
+In this stage a basic MLP is trained to classify the input data and report the test accuracy of the model. Make sure that this target model achieves a high test accuracy or else the perturbation generator won't be very useful.
+
+### Phase 2: Train Perturbation Generator
+
+In this stage the generator is trained to perturb samples in the input data such that the target model classifies these samples as the target class. This stage is the most time-consuming, especially if the input data is large. Once the generator is trained it will report the "perturbation accuracy", which is the percentage of samples in the test set that were successfully perturbed (i.e. the target model classified them as the target class). A high perturbation accuracy means that the generator is effective at perturbing samples to "look like" the target class.
+
+### Phase 3: Generate Sample Perturbations
+
+In this stage the trained generator is used to perturb samples from a test set. Note that the data used to train the generator must be provided as the "training data" in this stage as TSPG still needs to refer to it. The output consists of a perturbation vector for each sample in the test set, which when added to the sample should cause it to be classified as the target class. Additionally, this stage will generate a dataframe of "mean perturbations", where each column is the difference between the means of the i-th class and target class. These perturbations can be used as a baseline to measure the effectiveness of the TSPG perturbations.
+
+### Phase 4: Visualize Sample Perturbations
+
+In this stage the perturbations from the previous stage are visualized in the form of (1) a t-SNE plot of all training samples, test samples, and perturbed test samples, and (2) a heatmap of each test sample which shows the original sample, perturbation, perturbed sample, and mean of the target class for comparison. Both of these visualizations should be examined to verify that the test samples were successfully perturbed to the target class. Note that the heatmap will order the genes (rows) according to the perturbation vector (the "P" column), so the top-most and bottom-most genes in that arrangement are the most strongly affected genes. These genes can be extracted from the perturbation vector via Excel for further analysis (functional enrichment, comparison with DGE analysis, etc).

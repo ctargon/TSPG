@@ -136,7 +136,7 @@ process train_advgan {
 			--labels     ${labels} \
 			--gene-sets  ${gmt_file} \
 			--set        ${gene_set} \
-			--target     ${params.perturb.target_class} \
+			--target     ${params.input.target_class} \
 			--output-dir .
 
 		rename 's/^generator\\//generator__/' generator/*
@@ -179,7 +179,7 @@ process perturb {
 			--test-labels  ${labels} \
 			--gene-sets    ${gmt_file} \
 			--set          ${gene_set} \
-			--target       ${params.perturb.target_class} \
+			--target       ${params.input.target_class} \
 			--output-dir   .
 		"""
 }
@@ -213,7 +213,7 @@ process visualize {
 			--test-labels  ${labels} \
 			--gene-sets    ${gmt_file} \
 			--set          ${gene_set} \
-			--target       ${params.perturb.target_class} \
+			--target       ${params.input.target_class} \
 			--output-dir   . \
 			--tsne \
 			--heatmap

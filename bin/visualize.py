@@ -12,9 +12,9 @@ import utils
 
 
 
-def plot_tsne(x, y, classes, class_indices, x_pert=None, y_pert=-1, output_dir="."):
+def plot_tsne(x, y, classes, class_indices, x_pert=None, y_pert=None, target=-1, output_dir="."):
 	# compute t-SNE embedding on merged data
-	if y_pert != -1:
+	if target != -1:
 		x_tsne = np.vstack([x, x_pert])
 	else:
 		x_tsne = x
@@ -33,10 +33,11 @@ def plot_tsne(x, y, classes, class_indices, x_pert=None, y_pert=-1, output_dir="
 		indices = (y == k)
 		ax.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75)
 
-	if y_pert != -1:
+	if target != -1:
 		for k in class_indices:
-			indices = (y == k)
+			indices = (y_pert == k)
 			label = "%s (perturbed)" % (classes[k])
+
 			ax.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25)
 
 	plt.subplots_adjust(right=0.70)
@@ -162,7 +163,7 @@ if __name__ == "__main__":
 	# load perturbed samples
 	if args.target != -1:
 		df_pert = utils.load_dataframe("%s/%s.perturbations.samples.txt" % (args.output_dir, classes[args.target]))
-		x_pert = df_pert.values.T
+		p = df_pert.values.T
 	else:
 		df_pert = pd.DataFrame()
 
@@ -171,7 +172,7 @@ if __name__ == "__main__":
 		# select classes to include in plot
 		class_indices = list(range(len(classes)))
 
-		plot_tsne(x_train, y_train, classes, class_indices, x_pert, args.target, output_dir=args.output_dir)
+		plot_tsne(x_train, y_train, classes, class_indices, x_test + p, y_test, args.target, output_dir=args.output_dir)
 
 	# plot heatmaps if specified
 	if args.heatmap:
@@ -180,14 +181,11 @@ if __name__ == "__main__":
 
 		# plot heatmap of each perturbed sample
 		for i, sample_name in enumerate(df_pert.columns):
-			# extract original sample and perturbed sample
-			x_i = x_test[i]
-			p_i = x_pert[i]
-
+			# extract original sample, perturbation, and perturbed sample
 			df = pd.DataFrame({
-				"X": x_i,
-				"P": p_i,
-				"X + P": x_i + p_i,
+				"X": x_test[i],
+				"P": p[i],
+				"X + P": x_test[i] + p[i],
 				"mu_T": mu_target
 			})
 			df = df.sort_values("P", ascending=False)
