@@ -82,9 +82,6 @@ process train_target {
 	output:
 		set val(dataset), val(gene_set), file("target_model__*") into TARGET_MODELS_FROM_TRAIN_TARGET
 
-	when:
-		params.train_target.enabled == true
-
 	script:
 		"""
 		train-target.py \
@@ -122,9 +119,6 @@ process train_advgan {
 	output:
 		set val(dataset), val(gene_set), file("generator__*") into GENERATORS_FOR_PERTURB
 
-	when:
-		params.train_advgan.enabled == true
-
 	script:
 		"""
 		mkdir -p target_model/
@@ -158,11 +152,8 @@ process perturb {
 		set val(dataset), val(gene_set), file(generator_files) from GENERATORS_FOR_PERTURB
 
 	output:
-		set val(dataset), val(gene_set), file("*.perturbed_means.txt") into PERTURBED_MEANS_FROM_PERTURB
-		set val(dataset), val(gene_set), file("*.perturbed_samples.txt") into PERTURBED_SAMPLES_FROM_PERTURB
-
-	when:
-		params.perturb.enabled == true
+		set val(dataset), val(gene_set), file("*.perturbations.means.txt") into MEAN_PERTURBATIONS
+		set val(dataset), val(gene_set), file("*.perturbations.samples.txt") into SAMPLE_PERTURBATIONS
 
 	script:
 		"""
@@ -196,13 +187,10 @@ process visualize {
 
 	input:
 		set val(dataset), file(data_files), file(labels), val(gmt_name), file(gmt_file), val(gene_set) from INPUTS_FOR_VISUALIZE
-		set val(dataset), val(gene_set), file(perturbed_sample_files) from PERTURBED_SAMPLES_FROM_PERTURB
+		set val(dataset), val(gene_set), file(perturbed_sample_files) from SAMPLE_PERTURBATIONS
 
 	output:
 		file("*.png")
-
-	when:
-		params.visualize.enabled == true
 
 	script:
 		"""
