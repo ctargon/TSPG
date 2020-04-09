@@ -62,7 +62,7 @@ def load_labels(filename, classes=None):
 
 	# convert categorical labels to numerical labels
 	if classes != None:
-		labels = [classes.index(l) for l in labels]
+		labels = np.array([classes.index(l) for l in labels])
 	else:
 		encoder = sklearn.preprocessing.LabelEncoder()
 		labels = encoder.fit_transform(labels)
