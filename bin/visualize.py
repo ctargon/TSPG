@@ -173,7 +173,15 @@ if __name__ == "__main__":
 		# select classes to include in plot
 		class_indices = list(range(len(classes)))
 
-		plot_tsne(x_train, y_train, classes, class_indices, x_test + p, y_test, args.target, output_dir=args.output_dir)
+		plot_tsne(
+			x_train,
+			y_train,
+			classes,
+			class_indices,
+			np.clip(x_test + p, 0, 1),
+			y_test,
+			args.target,
+			output_dir=args.output_dir)
 
 	# plot heatmaps if specified
 	if args.heatmap:
@@ -186,7 +194,7 @@ if __name__ == "__main__":
 			df = pd.DataFrame({
 				"X": x_test[i],
 				"P": p[i],
-				"X + P": x_test[i] + p[i],
+				"X + P": np.clip(x_test[i] + p[i], 0, 1),
 				"mu_T": mu_target
 			})
 			df = df.sort_values("P", ascending=False)
