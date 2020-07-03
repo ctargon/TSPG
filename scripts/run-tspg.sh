@@ -21,10 +21,10 @@ mpirun sleep 20
 cp -r ${INPUT_DIR} ${TMPDIR}
 
 # Change these variables to match your specific input files, gene set, and target class
-TRAIN_DATA="${TMPDIR}/${INPUT_DIR}/train_GEM.txt"
-TRAIN_LABELS="${TMPDIR}/${INPUT_DIR}/train_labels.txt"
-TEST_DATA="${TMPDIR}/${INPUT_DIR}/test_GEM.txt"
-TEST_LABELS="${TMPDIR}/${INPUT_DIR}/test_labels.txt"
+TRAIN_DATA="${TMPDIR}/${INPUT_DIR}/train.GEM.txt"
+TRAIN_LABELS="${TMPDIR}/${INPUT_DIR}/train.labels.txt"
+PERTURB_DATA="${TMPDIR}/${INPUT_DIR}/perturb.GEM.txt"
+PERTURB_LABELS="${TMPDIR}/${INPUT_DIR}/perturb.labels.txt"
 GMT_FILE="${TMPDIR}/${INPUT_DIR}/genesets.txt"
 GENE_SET="gene-set-all"
 TARGET_CLASS="normal"
@@ -69,14 +69,14 @@ echo
 
 # generate perturbed samples using AdvGAN model
 ${TSPG_DIR}/bin/perturb.py \
-	--train-data   ${TRAIN_DATA} \
-	--train-labels ${TRAIN_LABELS} \
-	--test-data    ${TEST_DATA} \
-	--test-labels  ${TEST_LABELS} \
-	--gene-sets    ${GMT_FILE} \
-	--set          ${GENE_SET} \
-	--target       ${TARGET_CLASS} \
-	--output-dir   ${OUTPUT_DIR}
+	--train-data      ${TRAIN_DATA} \
+	--train-labels    ${TRAIN_LABELS} \
+	--perturb-data    ${PERTURB_DATA} \
+	--perturb-labels  ${PERTURB_LABELS} \
+	--gene-sets       ${GMT_FILE} \
+	--set             ${GENE_SET} \
+	--target          ${TARGET_CLASS} \
+	--output-dir      ${OUTPUT_DIR}
 
 
 echo
@@ -85,14 +85,14 @@ echo
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
 ${TSPG_DIR}/bin/visualize.py \
-	--train-data   ${TRAIN_DATA} \
-	--train-labels ${TRAIN_LABELS} \
-	--test-data    ${TEST_DATA} \
-	--test-labels  ${TEST_LABELS} \
-	--gene-sets    ${GMT_FILE} \
-	--set          ${GENE_SET} \
-	--target       ${TARGET_CLASS} \
-	--output-dir   ${OUTPUT_DIR} \
+	--train-data      ${TRAIN_DATA} \
+	--train-labels    ${TRAIN_LABELS} \
+	--perturb-data    ${PERTURB_DATA} \
+	--perturb-labels  ${PERTURB_LABELS} \
+	--gene-sets       ${GMT_FILE} \
+	--set             ${GENE_SET} \
+	--target          ${TARGET_CLASS} \
+	--output-dir      ${OUTPUT_DIR} \
 	--tsne \
 	--heatmap
 

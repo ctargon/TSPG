@@ -87,8 +87,8 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--train-data", help="training data (samples x genes)", required=True)
 	parser.add_argument("--train-labels", help="training labels", required=True)
-	parser.add_argument("--test-data", help="test data (samples x genes)", required=True)
-	parser.add_argument("--test-labels", help="test labels", required=True)
+	parser.add_argument("--perturb-data", help="perturb data (samples x genes)", required=True)
+	parser.add_argument("--perturb-labels", help="perturb labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--tsne", help="plot t-SNE of samples", action="store_true")
@@ -99,22 +99,22 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# load input data
-	print("loading train/test data...")
+	print("loading train/perturb data...")
 
 	df_train = utils.load_dataframe(args.train_data)
-	df_test = utils.load_dataframe(args.test_data)
+	df_perturb = utils.load_dataframe(args.perturb_data)
 
 	y_train, classes = utils.load_labels(args.train_labels)
-	y_test, _ = utils.load_labels(args.test_labels, classes)
+	y_perturb, _ = utils.load_labels(args.perturb_labels, classes)
 
 	print("loaded train data (%s genes, %s samples)" % (df_train.shape[1], df_train.shape[0]))
-	print("loaded test data (%s genes, %s samples)" % (df_test.shape[1], df_test.shape[0]))
+	print("loaded perturb data (%s genes, %s samples)" % (df_perturb.shape[1], df_perturb.shape[0]))
 
 	# impute missing values
 	min_value = df_train.min().min()
 
 	df_train.fillna(value=min_value, inplace=True)
-	df_test.fillna(value=min_value, inplace=True)
+	df_perturb.fillna(value=min_value, inplace=True)
 
 	# sanitize class names
 	classes = [utils.sanitize(c) for c in classes]
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 		print("loading gene sets...")
 
 		gene_sets = utils.load_gene_sets(args.gene_sets)
-		gene_sets = utils.filter_gene_sets(gene_sets, df_test.columns)
+		gene_sets = utils.filter_gene_sets(gene_sets, df_perturb.columns)
 
 		print("loaded %d gene sets" % (len(gene_sets)))
 	else:
@@ -150,16 +150,16 @@ if __name__ == "__main__":
 		print("gene set is not the subset file provided")
 		sys.exit(1)
 
-	# extract train/test data
+	# extract train/perturb data
 	x_train = df_train[genes]
-	x_test = df_test[genes]
+	x_perturb = df_perturb[genes]
 
-	# normalize test data (using the train data)
+	# normalize perturb data (using the train data)
 	scaler = sklearn.preprocessing.MinMaxScaler()
 	scaler.fit(x_train)
 
 	x_train = scaler.transform(x_train)
-	x_test = scaler.transform(x_test)
+	x_perturb = scaler.transform(x_perturb)
 
 	# load perturbed samples
 	if args.target != -1:
@@ -178,8 +178,8 @@ if __name__ == "__main__":
 			y_train,
 			classes,
 			class_indices,
-			np.clip(x_test + p, 0, 1),
-			y_test,
+			np.clip(x_perturb + p, 0, 1),
+			y_perturb,
 			args.target,
 			output_dir=args.output_dir)
 
@@ -192,16 +192,16 @@ if __name__ == "__main__":
 		for i, sample_name in enumerate(df_pert.columns):
 			# extract original sample, perturbation, and perturbed sample
 			df = pd.DataFrame({
-				"X": x_test[i],
+				"X": x_perturb[i],
 				"P": p[i],
-				"X + P": np.clip(x_test[i] + p[i], 0, 1),
+				"X + P": np.clip(x_perturb[i] + p[i], 0, 1),
 				"mu_T": mu_target
 			})
 			df = df.sort_values("P", ascending=False)
 
 			# create heatmap of original and perturbed samples
 			sample_name = utils.sanitize(sample_name)
-			source_class = classes[y_test[i]]
+			source_class = classes[y_perturb[i]]
 			target_class = classes[args.target]
 
 			plot_heatmap(df, sample_name, source_class, target_class, output_dir=args.output_dir)

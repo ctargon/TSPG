@@ -3,8 +3,8 @@
 
 TRAIN_DATA="example.emx.txt"
 TRAIN_LABELS="example.labels.txt"
-TEST_DATA="example.emx.txt"
-TEST_LABELS="example.labels.txt"
+PERTURB_DATA="example.emx.txt"
+PERTURB_LABELS="example.labels.txt"
 GMT_FILE="example.genesets.txt"
 GENE_SET="gene-set-000"
 TARGET_CLASS="class-00"
@@ -18,7 +18,6 @@ source activate tspg
 
 # initialize output directory
 rm -rf ${OUTPUT_DIR}
-
 mkdir -p ${OUTPUT_DIR}
 
 # create synthetic input data
@@ -60,14 +59,14 @@ echo
 
 # generate perturbed samples using AdvGAN model
 bin/perturb.py \
-	--train-data   ${TRAIN_DATA} \
-	--train-labels ${TRAIN_LABELS} \
-	--test-data    ${TEST_DATA} \
-	--test-labels  ${TEST_LABELS} \
-	--gene-sets    ${GMT_FILE} \
-	--set          ${GENE_SET} \
-	--target       ${TARGET_CLASS} \
-	--output-dir   ${OUTPUT_DIR}
+	--train-data      ${TRAIN_DATA} \
+	--train-labels    ${TRAIN_LABELS} \
+	--perturb-data    ${PERTURB_DATA} \
+	--perturb-labels  ${PERTURB_LABELS} \
+	--gene-sets       ${GMT_FILE} \
+	--set             ${GENE_SET} \
+	--target          ${TARGET_CLASS} \
+	--output-dir      ${OUTPUT_DIR}
 
 echo
 echo "PHASE 4: VISUALIZE SAMPLE PERTURBATIONS"
@@ -75,13 +74,13 @@ echo
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
 bin/visualize.py \
-	--train-data   ${TRAIN_DATA} \
-	--train-labels ${TRAIN_LABELS} \
-	--test-data    ${TEST_DATA} \
-	--test-labels  ${TEST_LABELS} \
-	--gene-sets    ${GMT_FILE} \
-	--set          ${GENE_SET} \
-	--target       ${TARGET_CLASS} \
-	--output-dir   ${OUTPUT_DIR} \
+	--train-data      ${TRAIN_DATA} \
+	--train-labels    ${TRAIN_LABELS} \
+	--perturb-data    ${PERTURB_DATA} \
+	--perturb-labels  ${PERTURB_LABELS} \
+	--gene-sets       ${GMT_FILE} \
+	--set             ${GENE_SET} \
+	--target          ${TARGET_CLASS} \
+	--output-dir      ${OUTPUT_DIR} \
 	--tsne \
 	--heatmap

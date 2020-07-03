@@ -48,8 +48,8 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir="."):
 		is_targeted = False
 
 	# generate pertubation, add to original, clip to valid expression level
-	perturb, logit_perturb = generator.generator(x_pl, is_training)
-	x_perturbed = perturb + x_pl
+	p, logit_perturb = generator.generator(x_pl, is_training)
+	x_perturbed = p + x_pl
 	x_perturbed = tf.clip_by_value(x_perturbed, 0, 1)
 
 	# instantiate target model, create graphs for original and perturbed data
@@ -86,7 +86,7 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir="."):
 			targets = np.full((batch_y.shape[0],), target)
 			batch_y_pert = np.eye(y_pl.shape[-1])[targets]
 
-		score, _, batch_x_pert, batch_p = sess.run([accuracy, f_fake_probs, x_perturbed, perturb], feed_dict={
+		score, _, batch_x_pert, batch_p = sess.run([accuracy, f_fake_probs, x_perturbed, p], feed_dict={
 			x_pl: batch_x,
 			y_pl: batch_y_pert,
 			is_training: False,
@@ -107,8 +107,8 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--train-data", help="training data (samples x genes)", required=True)
 	parser.add_argument("--train-labels", help="training labels", required=True)
-	parser.add_argument("--test-data", help="test data (samples x genes)", required=True)
-	parser.add_argument("--test-labels", help="test labels", required=True)
+	parser.add_argument("--perturb-data", help="perturb data (samples x genes)", required=True)
+	parser.add_argument("--perturb-labels", help="perturb labels", required=True)
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--target", help="target class")
@@ -117,22 +117,22 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# load input data
-	print("loading train/test data...")
+	print("loading train/perturb data...")
 
 	df_train = utils.load_dataframe(args.train_data)
-	df_test = utils.load_dataframe(args.test_data)
+	df_perturb = utils.load_dataframe(args.perturb_data)
 
 	y_train, classes = utils.load_labels(args.train_labels)
-	y_test, _ = utils.load_labels(args.test_labels, classes)
+	y_perturb, _ = utils.load_labels(args.perturb_labels, classes)
 
 	print("loaded train data (%s genes, %s samples)" % (df_train.shape[1], df_train.shape[0]))
-	print("loaded test data (%s genes, %s samples)" % (df_test.shape[1], df_test.shape[0]))
+	print("loaded perturb data (%s genes, %s samples)" % (df_perturb.shape[1], df_perturb.shape[0]))
 
 	# impute missing values
 	min_value = df_train.min().min()
 
 	df_train.fillna(value=min_value, inplace=True)
-	df_test.fillna(value=min_value, inplace=True)
+	df_perturb.fillna(value=min_value, inplace=True)
 
 	# sanitize class names
 	classes = [utils.sanitize(c) for c in classes]
@@ -153,11 +153,11 @@ if __name__ == "__main__":
 		print("loading gene sets...")
 
 		gene_sets = utils.load_gene_sets(args.gene_sets)
-		gene_sets = utils.filter_gene_sets(gene_sets, df_test.columns)
+		gene_sets = utils.filter_gene_sets(gene_sets, df_perturb.columns)
 
 		print("loaded %d gene sets" % (len(gene_sets)))
 	else:
-		gene_sets = {"all_genes": df_test.columns}
+		gene_sets = {"all_genes": df_perturb.columns}
 
 	# select gene set
 	try:
@@ -167,40 +167,40 @@ if __name__ == "__main__":
 		print("gene set is not the subset file provided")
 		sys.exit(1)
 
-	# extract train/test data
+	# extract train/perturb data
 	x_train = df_train[genes]
-	x_test = df_test[genes]
+	x_perturb = df_perturb[genes]
 
 	y_train = utils.onehot_encode(y_train, classes)
-	y_test = utils.onehot_encode(y_test, classes)
+	y_perturb = utils.onehot_encode(y_perturb, classes)
 
-	# normalize test data (using the train data)
+	# normalize perturb data (using the train data)
 	scaler = sklearn.preprocessing.MinMaxScaler()
 	scaler.fit(x_train)
 
 	x_train = scaler.transform(x_train)
-	x_test = scaler.transform(x_test)
+	x_perturb = scaler.transform(x_perturb)
 
 	# perturb each class mean to the target class
-	mu_pert = perturb_mean_diff(x_test, y_test, args.target, classes)
+	mu_perturbed = perturb_mean_diff(x_perturb, y_perturb, args.target, classes)
 
 	# save mean peturbations to dataframe
-	df_pert = pd.DataFrame(
-		data=mu_pert,
+	df_perturbed = pd.DataFrame(
+		data=mu_perturbed,
 		index=genes,
 		columns=classes
 	)
 
-	utils.save_dataframe("%s/%s.perturbations.means.txt" % (args.output_dir, classes[args.target]), df_pert)
+	utils.save_dataframe("%s/%s.perturbations.means.txt" % (args.output_dir, classes[args.target]), df_perturbed)
 
 	# perturb all samples to target class
-	perturbations = perturb_advgan(x_test, y_test, args.target, output_dir=args.output_dir)
+	perturbations = perturb_advgan(x_perturb, y_perturb, args.target, output_dir=args.output_dir)
 
 	# save sample perturbations to dataframe
-	df_pert = pd.DataFrame(
+	df_perturbed = pd.DataFrame(
 		data=perturbations,
 		index=genes,
-		columns=df_test.index
+		columns=df_perturb.index
 	)
 
-	utils.save_dataframe("%s/%s.perturbations.samples.txt" % (args.output_dir, classes[args.target]), df_pert)
+	utils.save_dataframe("%s/%s.perturbations.samples.txt" % (args.output_dir, classes[args.target]), df_perturbed)
