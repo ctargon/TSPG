@@ -17,6 +17,9 @@ if __name__ == "__main__":
 	parser.add_argument("--gene-sets", help="list of curated gene sets")
 	parser.add_argument("--set", help="specific gene set to run")
 	parser.add_argument("--output-dir", help="Output directory", default=".")
+	parser.add_argument("--test-size", help="proportional test set size", type=float, default=0.2)
+	parser.add_argument("--epochs", help="number of training epochs", type=int, default=30)
+	parser.add_argument("--batch-size", help="minibatch size", type=int, default=32)
 
 	args = parser.parse_args()
 
@@ -54,7 +57,7 @@ if __name__ == "__main__":
 	y = utils.onehot_encode(labels, classes)
 
 	# create train/test sets
-	x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.1)
+	x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=args.test_size)
 
 	# normalize dataset
 	scaler = sklearn.preprocessing.MinMaxScaler()
@@ -63,6 +66,12 @@ if __name__ == "__main__":
 	x_train = scaler.transform(x_train)
 	x_test = scaler.transform(x_test)
 
-	clf = Target(n_input=x_train.shape[1], n_classes=len(classes), epochs=30, batch_size=32, output_dir=args.output_dir)
+	clf = Target(
+		n_input=x_train.shape[1],
+		n_classes=len(classes),
+		epochs=args.epochs,
+		batch_size=args.batch_size,
+		output_dir=args.output_dir)
+
 	clf.train(x_train, y_train)
 	clf.inference(x_test, y_test)

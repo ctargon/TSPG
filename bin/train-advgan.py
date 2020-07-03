@@ -238,6 +238,9 @@ if __name__ == "__main__":
 	parser.add_argument("--target", help="target class")
 	parser.add_argument("--set", help="gene set to run", type=str, default="HALLMARK_ALL")
 	parser.add_argument("--output-dir", help="Output directory", default=".")
+	parser.add_argument("--test-size", help="proportional test set size", type=float, default=0.2)
+	parser.add_argument("--epochs", help="number of training epochs", type=int, default=150)
+	parser.add_argument("--batch-size", help="minibatch size", type=int, default=128)
 
 	args = parser.parse_args()
 
@@ -290,7 +293,7 @@ if __name__ == "__main__":
 	y = utils.onehot_encode(labels, classes)
 
 	# create train/test sets
-	x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.2)
+	x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=args.test_size)
 
 	# normalize dataset
 	scaler = sklearn.preprocessing.MinMaxScaler()
@@ -304,4 +307,11 @@ if __name__ == "__main__":
 	target_mu = np.mean(target_data, axis=0)
 	target_cov = np.cov(target_data, rowvar=False)
 
-	AdvGAN(x_train, y_train, x_test, y_test, target_mu, target_cov, epochs=150, batch_size=128, target=args.target, output_dir=args.output_dir)
+	AdvGAN(
+		x_train, y_train,
+		x_test, y_test,
+		target_mu, target_cov,
+		epochs=args.epochs,
+		batch_size=args.batch_size,
+		target=args.target,
+		output_dir=args.output_dir)
