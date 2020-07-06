@@ -174,6 +174,8 @@ if __name__ == "__main__":
 	y_train = utils.onehot_encode(y_train, classes)
 	y_perturb = utils.onehot_encode(y_perturb, classes)
 
+	genes = x_train.columns
+
 	# normalize perturb data (using the train data)
 	scaler = sklearn.preprocessing.MinMaxScaler()
 	scaler.fit(x_train)
