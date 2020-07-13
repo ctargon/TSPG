@@ -184,7 +184,7 @@ if __name__ == "__main__":
 	x_perturb = scaler.transform(x_perturb)
 
 	# perturb each class mean to the target class
-	mu_perturbed = perturb_mean_diff(x_perturb, y_perturb, args.target, classes)
+	mu_perturbed = perturb_mean_diff(x_train, y_train, args.target, classes)
 
 	# save mean peturbations to dataframe
 	df_perturbed = pd.DataFrame(
