@@ -10,7 +10,7 @@ All of TSPG's dependencies can be installed via Anaconda. On a shared system (su
 
 ```bash
 # specific to Clemson's Palmetto cluster
-module add anaconda3/5.1.0
+module load anaconda3/5.1.0-gcc/8.3.1
 
 conda create -n tspg python=3.6 tensorflow-gpu=1.15.0 matplotlib numpy pandas scikit-learn seaborn
 ```
