@@ -44,11 +44,11 @@ echo
 
 # train target model on a gene set
 ${TSPG_DIR}/bin/train-target.py \
-	--dataset    ${TRAIN_DATA} \
-	--labels     ${TRAIN_LABELS} \
-	--gene-sets  ${GMT_FILE} \
-	--set        ${GENE_SET} \
-	--output-dir ${OUTPUT_DIR}
+    --dataset    ${TRAIN_DATA} \
+    --labels     ${TRAIN_LABELS} \
+    --gene-sets  ${GMT_FILE} \
+    --set        ${GENE_SET} \
+    --output-dir ${OUTPUT_DIR}
 
 echo
 echo "PHASE 2: TRAIN PERTURBATION GENERATOR"
@@ -56,12 +56,12 @@ echo
 
 # train AdvGAN model on a gene set
 ${TSPG_DIR}/bin/train-advgan.py \
-	--dataset    ${TRAIN_DATA} \
-	--labels     ${TRAIN_LABELS} \
-	--gene-sets  ${GMT_FILE} \
-	--set        ${GENE_SET} \
-	--target     ${TARGET_CLASS} \
-	--output-dir ${OUTPUT_DIR}
+    --dataset    ${TRAIN_DATA} \
+    --labels     ${TRAIN_LABELS} \
+    --gene-sets  ${GMT_FILE} \
+    --set        ${GENE_SET} \
+    --target     ${TARGET_CLASS} \
+    --output-dir ${OUTPUT_DIR}
 
 echo
 echo "PHASE 3: GENERATE SAMPLE PERTURBATIONS"
@@ -69,14 +69,14 @@ echo
 
 # generate perturbed samples using AdvGAN model
 ${TSPG_DIR}/bin/perturb.py \
-	--train-data      ${TRAIN_DATA} \
-	--train-labels    ${TRAIN_LABELS} \
-	--perturb-data    ${PERTURB_DATA} \
-	--perturb-labels  ${PERTURB_LABELS} \
-	--gene-sets       ${GMT_FILE} \
-	--set             ${GENE_SET} \
-	--target          ${TARGET_CLASS} \
-	--output-dir      ${OUTPUT_DIR}
+    --train-data      ${TRAIN_DATA} \
+    --train-labels    ${TRAIN_LABELS} \
+    --perturb-data    ${PERTURB_DATA} \
+    --perturb-labels  ${PERTURB_LABELS} \
+    --gene-sets       ${GMT_FILE} \
+    --set             ${GENE_SET} \
+    --target          ${TARGET_CLASS} \
+    --output-dir      ${OUTPUT_DIR}
 
 
 echo
@@ -85,15 +85,15 @@ echo
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
 ${TSPG_DIR}/bin/visualize.py \
-	--train-data      ${TRAIN_DATA} \
-	--train-labels    ${TRAIN_LABELS} \
-	--perturb-data    ${PERTURB_DATA} \
-	--perturb-labels  ${PERTURB_LABELS} \
-	--gene-sets       ${GMT_FILE} \
-	--set             ${GENE_SET} \
-	--target          ${TARGET_CLASS} \
-	--output-dir      ${OUTPUT_DIR} \
-	--tsne \
-	--heatmap
+    --train-data      ${TRAIN_DATA} \
+    --train-labels    ${TRAIN_LABELS} \
+    --perturb-data    ${PERTURB_DATA} \
+    --perturb-labels  ${PERTURB_LABELS} \
+    --gene-sets       ${GMT_FILE} \
+    --set             ${GENE_SET} \
+    --target          ${TARGET_CLASS} \
+    --output-dir      ${OUTPUT_DIR} \
+    --tsne \
+    --heatmap
 
 cp -r ${OUTPUT_DIR} ${PWD}
