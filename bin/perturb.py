@@ -48,8 +48,8 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir='.'):
         is_targeted = False
 
     # generate pertubation, add to original, clip to valid expression level
-    p, logit_perturb = generator.generator(x_pl, is_training)
-    x_perturbed = p + x_pl
+    p_pl, logit_perturb = generator.generator(x_pl, is_training)
+    x_perturbed = x_pl + p_pl
     x_perturbed = tf.clip_by_value(x_perturbed, 0, 1)
 
     # instantiate target model, create graphs for original and perturbed data
@@ -97,8 +97,11 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir='.'):
 
     print('perturbation accuracy: %0.3f' % (sum(scores) / len(scores)))
 
-    # return matrix of perturbed samples
-    return np.vstack(perturbations).T
+    # perform post-processing of perturbations
+    p = np.vstack(perturbations).T
+    p = np.clip(x + p, 0, 1) - x
+
+    return p
 
 
 
