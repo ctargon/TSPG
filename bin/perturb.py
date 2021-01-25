@@ -86,7 +86,7 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir='.'):
             targets = np.full((batch_y.shape[0],), target)
             batch_y_pert = np.eye(y_pl.shape[-1])[targets]
 
-        score, _, batch_x_pert, batch_p = sess.run([accuracy, f_fake_probs, x_perturbed, p], feed_dict={
+        score, _, batch_x_pert, batch_p = sess.run([accuracy, f_fake_probs, x_perturbed, p_pl], feed_dict={
             x_pl: batch_x,
             y_pl: batch_y_pert,
             is_training: False,
