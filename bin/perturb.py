@@ -98,8 +98,9 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir='.'):
     print('perturbation accuracy: %0.3f' % (sum(scores) / len(scores)))
 
     # perform post-processing of perturbations
-    p = np.vstack(perturbations).T
+    p = np.vstack(perturbations)
     p = np.clip(x + p, 0, 1) - x
+    p = p.T
 
     return p
 
