@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import sklearn.decomposition
 import sklearn.manifold
 import sklearn.preprocessing
 
@@ -12,38 +12,40 @@ import utils
 
 
 
-def plot_tsne(x, y, classes, class_indices, x_pert=None, y_pert=None, target=-1, output_dir='.'):
-    # compute t-SNE embedding on merged data
+def plot_tsne(x, y, classes, class_indices, n_pca=None, x_pert=None, y_pert=None, target=-1, output_dir='.'):
+    # merge original and perturbed data (if provided)
     if target != -1:
-        x_tsne = np.vstack([x, x_pert])
+        x_merged = np.vstack([x, x_pert])
     else:
-        x_tsne = x
+        x_merged = x
 
-    x_tsne = sklearn.manifold.TSNE().fit_transform(x_tsne)
+    # compute PCA embedding of merged data
+    x_pca = sklearn.decomposition.PCA(n_components=n_pca, copy=False).fit_transform(x_merged)
+
+    # compute t-SNE embedding of merged data
+    x_tsne = sklearn.manifold.TSNE(n_components=2).fit_transform(x_pca)
 
     # separate embedded data back into original and perturbed
-    x = x_tsne[:len(x)]
+    x      = x_tsne[:len(x)]
     x_pert = x_tsne[len(x):]
 
     # plot t-SNE embedding by class
-    fig, ax = plt.subplots()
-    colors = cm.rainbow(np.linspace(0, 1, len(class_indices)))
+    plt.axis('off')
 
     for k in class_indices:
         indices = (y == k)
         if indices.sum() > 0:
-            ax.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75)
+            plt.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75)
 
     if target != -1:
         for k in class_indices:
             indices = (y_pert == k)
             if indices.sum() > 0:
                 label = '%s (perturbed)' % (classes[k])
-                ax.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25)
+                plt.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25)
 
     plt.subplots_adjust(right=0.70)
-    ax.set_axis_off()
-    ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     plt.savefig('%s/tsne.png' % (output_dir))
     plt.close()
 
@@ -92,6 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('--gene-sets', help='list of curated gene sets')
     parser.add_argument('--set', help='specific gene set to run')
     parser.add_argument('--tsne', help='plot t-SNE of samples', action='store_true')
+    parser.add_argument("--tsne-npca", help="number of principal components to take before t-SNE", type=int)
     parser.add_argument('--heatmap', help='plot heatmaps of sample perturbations', action='store_true')
     parser.add_argument('--target', help='target class')
     parser.add_argument('--output-dir', help='output directory', default='.')
@@ -178,9 +181,10 @@ if __name__ == '__main__':
             y_train,
             classes,
             class_indices,
-            np.clip(x_perturb + p, 0, 1),
-            y_perturb,
-            args.target,
+            n_pca=args.tsne_npca,
+            x_pert=np.clip(x_perturb + p, 0, 1),
+            y_pert=y_perturb,
+            target=args.target,
             output_dir=args.output_dir)
 
     # plot heatmaps if specified
