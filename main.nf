@@ -69,7 +69,6 @@ PERTURB_LABELS
  */
 process train_target {
     tag "${gene_set}"
-    publishDir "${params.output.dir}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
     input:
         file(train_data) from TRAIN_DATA_FOR_TRAIN_TARGET
@@ -78,18 +77,20 @@ process train_target {
         each gene_set from GENE_SETS
 
     output:
-        set val(gene_set), file("target_model__*") into TARGET_MODELS_FROM_TRAIN_TARGET
+        set val(gene_set), val("${workflow.launchDir}/${params.output.dir}/${gene_set}") into TARGET_MODELS_FROM_TRAIN_TARGET
 
     script:
         """
+        OUTPUT_DIR="${workflow.launchDir}/${params.output.dir}/${gene_set}"
+
+        mkdir -p \${OUTPUT_DIR}
+
         train-target.py \
             --dataset    ${train_data} \
             --labels     ${train_labels} \
             --gene-sets  ${gmt_file} \
             --set        ${gene_set} \
-            --output-dir .
-
-        rename 's/^target_model\\//target_model__/' target_model/*
+            --output-dir \${OUTPUT_DIR}
         """
 }
 
@@ -108,34 +109,25 @@ TARGET_MODELS_FROM_TRAIN_TARGET
  */
 process train_advgan {
     tag "${gene_set}"
-    publishDir "${params.output.dir}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
     input:
         each file(train_data) from TRAIN_DATA_FOR_TRAIN_ADVGAN
         each file(train_labels) from TRAIN_LABELS_FOR_TRAIN_ADVGAN
         each file(gmt_file) from GMT_FILE_FOR_TRAIN_ADVGAN
-        set val(gene_set), file(target_model_files) from TARGET_MODELS_FOR_TRAIN_ADVGAN
+        set val(gene_set), val(output_dir) from TARGET_MODELS_FOR_TRAIN_ADVGAN
 
     output:
-        set val(gene_set), file("generator__*") into GENERATORS_FOR_PERTURB
+        set val(gene_set), val(output_dir) into GENERATORS_FOR_PERTURB
 
     script:
         """
-        mkdir -p target_model/
-
-        rename 's/^target_model__/target_model\\//' target_model__*
-
-        find | sort
-
         train-advgan.py \
             --dataset    ${train_data} \
             --labels     ${train_labels} \
             --gene-sets  ${gmt_file} \
             --set        ${gene_set} \
             --target     ${params.input.target_class} \
-            --output-dir .
-
-        rename 's/^generator\\//generator__/' generator/*
+            --output-dir ${output_dir}
         """
 }
 
@@ -146,7 +138,6 @@ process train_advgan {
  */
 process perturb {
     tag "${gene_set}"
-    publishDir "${params.output.dir}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
     input:
         each file(train_data) from TRAIN_DATA_FOR_PERTURB
@@ -154,21 +145,14 @@ process perturb {
         each file(perturb_data) from PERTURB_DATA_FOR_PERTURB
         each file(perturb_labels) from PERTURB_LABELS_FOR_PERTURB
         each file(gmt_file) from GMT_FILE_FOR_PERTURB
-        set val(gene_set), file(target_model_files) from TARGET_MODELS_FOR_PERTURB
-        set val(gene_set), file(generator_files) from GENERATORS_FOR_PERTURB
+        set val(gene_set), val(output_dir) from TARGET_MODELS_FOR_PERTURB
+        set val(gene_set), val(output_dir) from GENERATORS_FOR_PERTURB
 
     output:
-        set val(gene_set), file("*.perturbations.means.txt") into MEAN_PERTURBATIONS
-        set val(gene_set), file("*.perturbations.samples.txt") into SAMPLE_PERTURBATIONS
+        set val(gene_set), val(output_dir) into SAMPLE_PERTURBATIONS
 
     script:
         """
-        mkdir -p target_model/
-        mkdir -p generator/
-
-        rename 's/^target_model__/target_model\\//' target_model__*
-        rename 's/^generator__/generator\\//' generator__*
-
         perturb.py \
             --train-data     ${train_data} \
             --train-labels   ${train_labels} \
@@ -177,7 +161,7 @@ process perturb {
             --gene-sets      ${gmt_file} \
             --set            ${gene_set} \
             --target         ${params.input.target_class} \
-            --output-dir     .
+            --output-dir     ${output_dir}
         """
 }
 
@@ -189,7 +173,6 @@ process perturb {
  */
 process visualize {
     tag "${gene_set}"
-    publishDir "${params.output.dir}/${gene_set}", mode: "copy", saveAs: { it.replaceAll("__", "/") }
 
     input:
         each file(train_data) from TRAIN_DATA_FOR_VISUALIZE
@@ -197,10 +180,7 @@ process visualize {
         each file(perturb_data) from PERTURB_DATA_FOR_VISUALIZE
         each file(perturb_labels) from PERTURB_LABELS_FOR_VISUALIZE
         each file(gmt_file) from GMT_FILE_FOR_VISUALIZE
-        set val(gene_set), file(perturbed_sample_files) from SAMPLE_PERTURBATIONS
-
-    output:
-        file("*.png")
+        set val(gene_set), val(output_dir) from SAMPLE_PERTURBATIONS
 
     script:
         """
@@ -212,7 +192,7 @@ process visualize {
             --gene-sets      ${gmt_file} \
             --set            ${gene_set} \
             --target         ${params.input.target_class} \
-            --output-dir     . \
+            --output-dir     ${output_dir} \
             --tsne \
             --heatmap
         """
