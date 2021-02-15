@@ -1,10 +1,10 @@
 #!/bin/bash
 # Example usage of TSPG on a synthetic dataset.
 
-TRAIN_DATA="example.emx.txt"
-TRAIN_LABELS="example.labels.txt"
-PERTURB_DATA="example.emx.txt"
-PERTURB_LABELS="example.labels.txt"
+TRAIN_DATA="example.train.emx.txt"
+TRAIN_LABELS="example.train.labels.txt"
+PERTURB_DATA="example.perturb.emx.txt"
+PERTURB_LABELS="example.perturb.labels.txt"
 GMT_FILE="example.genesets.txt"
 GENE_SET="gene-set-000"
 TARGET_CLASS="class-00"

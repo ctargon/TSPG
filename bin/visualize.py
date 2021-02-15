@@ -173,6 +173,8 @@ if __name__ == '__main__':
 
     # plot t-SNE visualization if specified
     if args.tsne:
+        print('creating tsne plot...')
+
         # select classes to include in plot
         class_indices = list(range(len(classes)))
 
@@ -189,11 +191,15 @@ if __name__ == '__main__':
 
     # plot heatmaps if specified
     if args.heatmap:
+        print('creating heatmaps...')
+
         # compute mean of target class
         mu_target = x_train[y_train == args.target].mean(axis=0)
 
         # plot heatmap of each perturbed sample
         for i, sample_name in enumerate(df_pert.columns):
+            print('  %s' % (sample_name))
+
             # extract original sample, perturbation, and perturbed sample
             df = pd.DataFrame({
                 'X': x_perturb[i],

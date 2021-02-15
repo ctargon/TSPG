@@ -8,6 +8,7 @@ import pandas as pd
 import random
 import sklearn.datasets
 import sklearn.manifold
+import sklearn.model_selection
 import sys
 
 import utils
@@ -17,12 +18,15 @@ import utils
 if __name__ == '__main__':
     # parse command-line arguments
     parser = argparse.ArgumentParser(description='Create a synthetic classification dataset')
-    parser.add_argument('--n-samples', help='number of samples', type=int, default=100)
+    parser.add_argument('--n-samples', help='number of samples', type=int, default=80)
     parser.add_argument('--n-genes', help='number of genes', type=int, default=20)
     parser.add_argument('--n-classes', help='number of classes', type=int, default=2)
+    parser.add_argument('--train-size', help='training set proportion', type=float, default=0.8)
     parser.add_argument('--n-sets', help='number of gene sets', type=int, default=10)
-    parser.add_argument('--dataset', help='name of dataset file', default='example.emx.txt')
-    parser.add_argument('--labels', help='name of label file', default='example.labels.txt')
+    parser.add_argument('--train-data', help='train dataset filename', default='example.train.emx.txt')
+    parser.add_argument('--train-labels', help='train labels filename', default='example.train.labels.txt')
+    parser.add_argument('--perturb-data', help='perturb dataset filename', default='example.perturb.emx.txt')
+    parser.add_argument('--perturb-labels', help='perturb labels filename', default='example.perturb.labels.txt')
     parser.add_argument('--gene-sets', help='name of gene sets file', default='example.genesets.txt')
     parser.add_argument('--visualize', help='create t-SNE plot of dataset', action='store_true')
 
@@ -61,24 +65,27 @@ if __name__ == '__main__':
         x_tsne = sklearn.manifold.TSNE().fit_transform(x)
 
         # plot t-SNE embedding by class
-        fig, ax = plt.subplots()
-        colors = cm.rainbow(np.linspace(0, 1, len(classes)))
+        plt.axis('off')
 
         for c in classes:
             indices = (y[0] == c)
-            ax.scatter(x_tsne[indices, 0], x_tsne[indices, 1], label=c, alpha=0.75)
+            plt.scatter(x_tsne[indices, 0], x_tsne[indices, 1], label=c, alpha=0.75)
 
         plt.subplots_adjust(right=0.70)
-        ax.set_axis_off()
-        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
-        plt.savefig('%s.tsne.png' % (args.dataset.split('.')[0]))
+        plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        plt.savefig('%s.tsne.png' % (args.train_data.split('.')[0]))
         plt.close()
 
-    # save dataset to file
-    utils.save_dataframe(args.dataset, x)
+    # split dataset into train/perturb sets
+    x_train, x_perturb, y_train, y_perturb = sklearn.model_selection.train_test_split(x, y, test_size=1 - args.train_size)
+
+    # save datasets to file
+    utils.save_dataframe(args.train_data, x_train)
+    utils.save_dataframe(args.perturb_data, x_perturb)
 
     # save labels to file
-    y.to_csv(args.labels, sep='\t', header=None)
+    y_train.to_csv(args.train_labels, sep='\t', header=None)
+    y_perturb.to_csv(args.perturb_labels, sep='\t', header=None)
 
     # save gene sets to file
     f = open(args.gene_sets, 'w')
