@@ -7,8 +7,8 @@
  */
 TRAIN_DATA = Channel.fromPath("${params.input.dir}/${params.input.train_data}")
 TRAIN_LABELS = Channel.fromPath("${params.input.dir}/${params.input.train_labels}")
-TEST_DATA = Channel.fromPath("${params.input.dir}/${params.input.test_data}")
-TEST_LABELS = Channel.fromPath("${params.input.dir}/${params.input.test_labels}")
+PERTURB_DATA = Channel.fromPath("${params.input.dir}/${params.input.perturb_data}")
+PERTURB_LABELS = Channel.fromPath("${params.input.dir}/${params.input.perturb_labels}")
 GMT_FILE = Channel.fromPath("${params.input.dir}/${params.input.gmt_file}")
 
 
@@ -50,16 +50,16 @@ TRAIN_LABELS
         TRAIN_LABELS_FOR_VISUALIZE
     }
 
-TEST_DATA
+PERTURB_DATA
     .into {
-        TEST_DATA_FOR_PERTURB;
-        TEST_DATA_FOR_VISUALIZE
+        PERTURB_DATA_FOR_PERTURB;
+        PERTURB_DATA_FOR_VISUALIZE
     }
 
-TEST_LABELS
+PERTURB_LABELS
     .into {
-        TEST_LABELS_FOR_PERTURB;
-        TEST_LABELS_FOR_VISUALIZE
+        PERTURB_LABELS_FOR_PERTURB;
+        PERTURB_LABELS_FOR_VISUALIZE
     }
 
 
@@ -151,8 +151,8 @@ process perturb {
     input:
         each file(train_data) from TRAIN_DATA_FOR_PERTURB
         each file(train_labels) from TRAIN_LABELS_FOR_PERTURB
-        each file(test_data) from TEST_DATA_FOR_PERTURB
-        each file(test_labels) from TEST_LABELS_FOR_PERTURB
+        each file(perturb_data) from PERTURB_DATA_FOR_PERTURB
+        each file(perturb_labels) from PERTURB_LABELS_FOR_PERTURB
         each file(gmt_file) from GMT_FILE_FOR_PERTURB
         set val(gene_set), file(target_model_files) from TARGET_MODELS_FOR_PERTURB
         set val(gene_set), file(generator_files) from GENERATORS_FOR_PERTURB
@@ -170,14 +170,14 @@ process perturb {
         rename 's/^generator__/generator\\//' generator__*
 
         perturb.py \
-            --train-data   ${train_data} \
-            --train-labels ${train_labels} \
-            --test-data    ${test_data} \
-            --test-labels  ${test_labels} \
-            --gene-sets    ${gmt_file} \
-            --set          ${gene_set} \
-            --target       ${params.input.target_class} \
-            --output-dir   .
+            --train-data     ${train_data} \
+            --train-labels   ${train_labels} \
+            --perturb-data   ${perturb_data} \
+            --perturb-labels ${perturb_labels} \
+            --gene-sets      ${gmt_file} \
+            --set            ${gene_set} \
+            --target         ${params.input.target_class} \
+            --output-dir     .
         """
 }
 
@@ -194,8 +194,8 @@ process visualize {
     input:
         each file(train_data) from TRAIN_DATA_FOR_VISUALIZE
         each file(train_labels) from TRAIN_LABELS_FOR_VISUALIZE
-        each file(test_data) from TEST_DATA_FOR_VISUALIZE
-        each file(test_labels) from TEST_LABELS_FOR_VISUALIZE
+        each file(perturb_data) from PERTURB_DATA_FOR_VISUALIZE
+        each file(perturb_labels) from PERTURB_LABELS_FOR_VISUALIZE
         each file(gmt_file) from GMT_FILE_FOR_VISUALIZE
         set val(gene_set), file(perturbed_sample_files) from SAMPLE_PERTURBATIONS
 
@@ -205,14 +205,14 @@ process visualize {
     script:
         """
         visualize.py \
-            --train-data   ${train_data} \
-            --train-labels ${train_labels} \
-            --test-data    ${test_data} \
-            --test-labels  ${test_labels} \
-            --gene-sets    ${gmt_file} \
-            --set          ${gene_set} \
-            --target       ${params.input.target_class} \
-            --output-dir   . \
+            --train-data     ${train_data} \
+            --train-labels   ${train_labels} \
+            --perturb-data   ${perturb_data} \
+            --perturb-labels ${perturb_labels} \
+            --gene-sets      ${gmt_file} \
+            --set            ${gene_set} \
+            --target         ${params.input.target_class} \
+            --output-dir     . \
             --tsne \
             --heatmap
         """
