@@ -69,6 +69,7 @@ PERTURB_LABELS
  */
 process train_target {
     tag "${gene_set}"
+    label "gpu"
 
     input:
         file(train_data) from TRAIN_DATA_FOR_TRAIN_TARGET
@@ -113,6 +114,7 @@ TARGET_MODELS_FROM_TRAIN_TARGET
  */
 process train_advgan {
     tag "${gene_set}"
+    label "gpu"
 
     input:
         each file(train_data) from TRAIN_DATA_FOR_TRAIN_ADVGAN
@@ -146,6 +148,7 @@ process train_advgan {
  */
 process perturb {
     tag "${gene_set}"
+    label "gpu"
 
     input:
         each file(train_data) from TRAIN_DATA_FOR_PERTURB

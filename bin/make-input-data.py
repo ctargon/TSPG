@@ -18,7 +18,7 @@ import utils
 if __name__ == '__main__':
     # parse command-line arguments
     parser = argparse.ArgumentParser(description='Create a synthetic classification dataset')
-    parser.add_argument('--n-samples', help='number of samples', type=int, default=80)
+    parser.add_argument('--n-samples', help='number of samples', type=int, default=100)
     parser.add_argument('--n-genes', help='number of genes', type=int, default=20)
     parser.add_argument('--n-classes', help='number of classes', type=int, default=2)
     parser.add_argument('--train-size', help='training set proportion', type=float, default=0.8)
