@@ -81,6 +81,10 @@ process train_target {
 
     script:
         """
+        echo "#TRACE gene_set=${gene_set}"
+        echo "#TRACE n_genes=`grep ${gene_set} ${gmt_file} | wc -w`"
+        echo "#TRACE n_train_samples=`tail -n +1 ${train_data} | wc -l`"
+
         OUTPUT_DIR="${workflow.launchDir}/${params.output.dir}/${gene_set}"
 
         mkdir -p \${OUTPUT_DIR}
@@ -121,6 +125,10 @@ process train_advgan {
 
     script:
         """
+        echo "#TRACE gene_set=${gene_set}"
+        echo "#TRACE n_genes=`grep ${gene_set} ${gmt_file} | wc -w`"
+        echo "#TRACE n_train_samples=`tail -n +1 ${train_data} | wc -l`"
+
         train-advgan.py \
             --dataset    ${train_data} \
             --labels     ${train_labels} \
@@ -153,6 +161,11 @@ process perturb {
 
     script:
         """
+        echo "#TRACE gene_set=${gene_set}"
+        echo "#TRACE n_genes=`grep ${gene_set} ${gmt_file} | wc -w`"
+        echo "#TRACE n_train_samples=`tail -n +1 ${train_data} | wc -l`"
+        echo "#TRACE n_perturb_samples=`tail -n +1 ${perturb_data} | wc -l`"
+
         perturb.py \
             --train-data     ${train_data} \
             --train-labels   ${train_labels} \
@@ -184,6 +197,11 @@ process visualize {
 
     script:
         """
+        echo "#TRACE gene_set=${gene_set}"
+        echo "#TRACE n_genes=`grep ${gene_set} ${gmt_file} | wc -w`"
+        echo "#TRACE n_train_samples=`tail -n +1 ${train_data} | wc -l`"
+        echo "#TRACE n_perturb_samples=`tail -n +1 ${perturb_data} | wc -l`"
+
         visualize.py \
             --train-data     ${train_data} \
             --train-labels   ${train_labels} \
