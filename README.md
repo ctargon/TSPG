@@ -2,7 +2,9 @@
 
 This repository contains the code for the Transcriptome State Perturbation Generator (TSPG). TSPG is an experimental tool for discovering biomarker genes using gene expression data and adversarial learning.
 
-View the paper "Cellular State Transformations using Generative Adversarial Networks" on arXiv: https://arxiv.org/abs/1907.00118
+Publications based on TSPG:
+- [Cellular State Transformations Using Deep Learning for Precision Medicine Applications](https://www.cell.com/patterns/fulltext/S2666-3899(20)30115-X)
+- [Cellular State Transformations using Generative Adversarial Networks](https://arxiv.org/abs/1907.00118) (arXiv preprint)
 
 ## Installation
 
