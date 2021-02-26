@@ -89,7 +89,7 @@ class Target:
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))
         scores = []
 
-        n_batches = len(x_test) // self.batch_size
+        n_batches = max(1, len(x_test) // self.batch_size)
         for i in range(n_batches):
             batch_x, batch_y = utils.next_batch(x_test, y_test, self.batch_size, i)
             score, prob = sess.run([accuracy, probs], {x: batch_x, y: batch_y, training: False})

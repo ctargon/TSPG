@@ -140,7 +140,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
         sys.exit(1)
 
     # train the advgan model
-    n_batches = int(len(y_train) / batch_size)
+    n_batches = max(1, len(y_train) // batch_size)
 
     for epoch in range(epochs):
         # shuffle training data
