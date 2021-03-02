@@ -140,7 +140,7 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
         sys.exit(1)
 
     # train the advgan model
-    n_batches = max(1, len(y_train) // batch_size)
+    n_batches = len(x_train) // batch_size
 
     for epoch in range(epochs):
         # shuffle training data
@@ -302,11 +302,17 @@ if __name__ == '__main__':
     x_train = scaler.transform(x_train)
     x_test = scaler.transform(x_test)
 
+    # adjust batch size if necessary
+    if args.batch_size > len(x_train):
+        print('info: reducing batch size to train set size, consider reducing further')
+        args.batch_size = len(x_train)
+
     # get mu and sigma of target class feature vectors
     target_data = x_train[np.argmax(y_train, axis=1) == args.target]
     target_mu = np.mean(target_data, axis=0)
     target_cov = np.cov(target_data, rowvar=False)
 
+    # train advgan model
     AdvGAN(
         x_train, y_train,
         x_test, y_test,

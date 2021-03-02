@@ -48,7 +48,7 @@ if __name__ == '__main__':
     else:
         gene_sets = {'all_genes': df_genes}
 
-    # train a model for each gene set
+    # select gene set
     name = args.set
     genes = gene_sets[name]
 
@@ -66,6 +66,12 @@ if __name__ == '__main__':
     x_train = scaler.transform(x_train)
     x_test = scaler.transform(x_test)
 
+    # adjust batch size if necessary
+    if args.batch_size > len(x_train):
+        print('info: reducing batch size to train set size, consider reducing further')
+        args.batch_size = len(x_train)
+
+    # train target model
     clf = Target(
         n_input=x_train.shape[1],
         n_classes=len(classes),

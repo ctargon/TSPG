@@ -52,9 +52,11 @@ class Target:
         sess = tf.Session()
         sess.run(init)
 
+        # train the target model
+        n_batches = len(x_train) // self.batch_size
+
         for epoch in range(self.epochs):
             avg_cost = 0.
-            n_batches = len(x_train) // self.batch_size
 
             for i in range(n_batches):
                 batch_x, batch_y = utils.next_batch(x_train, y_train, self.batch_size, i)
@@ -87,15 +89,14 @@ class Target:
         # compute accuracy
         correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))
-        scores = []
 
-        n_batches = max(1, len(x_test) // self.batch_size)
-        for i in range(n_batches):
-            batch_x, batch_y = utils.next_batch(x_test, y_test, self.batch_size, i)
-            score, prob = sess.run([accuracy, probs], {x: batch_x, y: batch_y, training: False})
-            scores.append(score)
+        score, prob = sess.run([accuracy, probs], feed_dict={
+            x: x_test,
+            y: y_test,
+            training: False
+        })
 
-        print('test accuracy: %0.3f' % (sum(scores) / len(scores)))
+        print('test accuracy: %0.3f' % (score))
         sess.close()
 
 
