@@ -164,12 +164,14 @@ if __name__ == '__main__':
     x_train = scaler.transform(x_train)
     x_perturb = scaler.transform(x_perturb)
 
-    # load perturbed samples
+    # load sample perturbations
     if args.target != -1:
         df_pert = utils.load_dataframe('%s/%s.perturbations.samples.txt' % (args.output_dir, classes[args.target]))
-        p = df_pert.values.T
     else:
         df_pert = pd.DataFrame()
+
+    # load sample perturbations like x_perturb
+    p = df_pert.values.T
 
     # plot t-SNE visualization if specified
     if args.tsne:
@@ -196,11 +198,11 @@ if __name__ == '__main__':
         # compute mean of target class
         mu_target = x_train[y_train == args.target].mean(axis=0)
 
-        # plot heatmap of each perturbed sample
+        # plot heatmaps for each sample perturbation
         for i, sample_name in enumerate(df_pert.columns):
             print('  %s' % (sample_name))
 
-            # extract original sample, perturbation, and perturbed sample
+            # extract original sample, perturbation, perturbed sample, and target mean
             df = pd.DataFrame({
                 'X': x_perturb[i],
                 'P': p[i],
@@ -209,9 +211,14 @@ if __name__ == '__main__':
             })
             df = df.sort_values('P', ascending=False)
 
-            # create heatmap of original and perturbed samples
+            # plot heatmap for each extracted column
             sample_name = utils.sanitize(sample_name)
             source_class = classes[y_perturb[i]]
             target_class = classes[args.target]
 
-            plot_heatmap(df, sample_name, source_class, target_class, output_dir=args.output_dir)
+            plot_heatmap(
+                df,
+                sample_name,
+                source_class,
+                target_class,
+                output_dir=args.output_dir)
