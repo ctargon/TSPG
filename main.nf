@@ -117,9 +117,9 @@ process train_advgan {
     label "gpu"
 
     input:
-        file(train_data) from TRAIN_DATA_FOR_TRAIN_ADVGAN
-        file(train_labels) from TRAIN_LABELS_FOR_TRAIN_ADVGAN
-        file(gmt_file) from GMT_FILE_FOR_TRAIN_ADVGAN
+        each file(train_data) from TRAIN_DATA_FOR_TRAIN_ADVGAN
+        each file(train_labels) from TRAIN_LABELS_FOR_TRAIN_ADVGAN
+        each file(gmt_file) from GMT_FILE_FOR_TRAIN_ADVGAN
         set val(gene_set), val(output_dir) from TARGET_MODELS_FOR_TRAIN_ADVGAN
 
     output:
@@ -151,11 +151,11 @@ process perturb {
     label "gpu"
 
     input:
-        file(train_data) from TRAIN_DATA_FOR_PERTURB
-        file(train_labels) from TRAIN_LABELS_FOR_PERTURB
-        file(perturb_data) from PERTURB_DATA_FOR_PERTURB
-        file(perturb_labels) from PERTURB_LABELS_FOR_PERTURB
-        file(gmt_file) from GMT_FILE_FOR_PERTURB
+        each file(train_data) from TRAIN_DATA_FOR_PERTURB
+        each file(train_labels) from TRAIN_LABELS_FOR_PERTURB
+        each file(perturb_data) from PERTURB_DATA_FOR_PERTURB
+        each file(perturb_labels) from PERTURB_LABELS_FOR_PERTURB
+        each file(gmt_file) from GMT_FILE_FOR_PERTURB
         set val(gene_set), val(output_dir) from TARGET_MODELS_FOR_PERTURB
         set val(gene_set), val(output_dir) from GENERATORS_FOR_PERTURB
 
@@ -191,11 +191,11 @@ process visualize {
     tag "${gene_set}"
 
     input:
-        file(train_data) from TRAIN_DATA_FOR_VISUALIZE
-        file(train_labels) from TRAIN_LABELS_FOR_VISUALIZE
-        file(perturb_data) from PERTURB_DATA_FOR_VISUALIZE
-        file(perturb_labels) from PERTURB_LABELS_FOR_VISUALIZE
-        file(gmt_file) from GMT_FILE_FOR_VISUALIZE
+        each file(train_data) from TRAIN_DATA_FOR_VISUALIZE
+        each file(train_labels) from TRAIN_LABELS_FOR_VISUALIZE
+        each file(perturb_data) from PERTURB_DATA_FOR_VISUALIZE
+        each file(perturb_labels) from PERTURB_LABELS_FOR_VISUALIZE
+        each file(gmt_file) from GMT_FILE_FOR_VISUALIZE
         set val(gene_set), val(output_dir) from SAMPLE_PERTURBATIONS
 
     script:
