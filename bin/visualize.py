@@ -46,6 +46,7 @@ def plot_tsne(x, y, classes, class_indices, n_pca=None, x_pert=None, y_pert=None
 
     plt.subplots_adjust(right=0.70)
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    plt.tight_layout()
     plt.savefig('%s/tsne.png' % (output_dir))
     plt.close()
 
@@ -79,6 +80,7 @@ def plot_heatmap(df, sample_name, source_class, target_class, output_dir='.'):
     cbar = ax[-1].figure.colorbar(im, ax=ax[-1], shrink=0.5)
     cbar.ax.set_ylabel('Expression Level', rotation=-90, va='bottom')
 
+    plt.tight_layout()
     plt.savefig('%s/%s.%s.%s.png' % (output_dir, source_class, target_class, sample_name))
     plt.close()
 
