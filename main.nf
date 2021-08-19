@@ -5,11 +5,11 @@
 /**
  * Create channels for input files.
  */
-TRAIN_DATA = Channel.fromPath("${params.input.dir}/${params.input.train_data}")
-TRAIN_LABELS = Channel.fromPath("${params.input.dir}/${params.input.train_labels}")
-PERTURB_DATA = Channel.fromPath("${params.input.dir}/${params.input.perturb_data}")
-PERTURB_LABELS = Channel.fromPath("${params.input.dir}/${params.input.perturb_labels}")
-GMT_FILE = Channel.fromPath("${params.input.dir}/${params.input.gmt_file}")
+TRAIN_DATA = Channel.fromPath("${params.input_dir}/${params.train_data}")
+TRAIN_LABELS = Channel.fromPath("${params.input_dir}/${params.train_labels}")
+PERTURB_DATA = Channel.fromPath("${params.input_dir}/${params.perturb_data}")
+PERTURB_LABELS = Channel.fromPath("${params.input_dir}/${params.perturb_labels}")
+GMT_FILE = Channel.fromPath("${params.input_dir}/${params.gmt_file}")
 
 
 
@@ -78,7 +78,7 @@ process train_target {
         each gene_set from GENE_SETS
 
     output:
-        set val(gene_set), val("${workflow.launchDir}/${params.output.dir}/${gene_set}") into TARGET_MODELS_FROM_TRAIN_TARGET
+        set val(gene_set), val("${workflow.launchDir}/${params.output_dir}/${gene_set}") into TARGET_MODELS_FROM_TRAIN_TARGET
 
     script:
         """
@@ -86,7 +86,7 @@ process train_target {
         echo "#TRACE n_genes=`grep ${gene_set} ${gmt_file} | wc -w`"
         echo "#TRACE n_train_samples=`tail -n +1 ${train_data} | wc -l`"
 
-        OUTPUT_DIR="${workflow.launchDir}/${params.output.dir}/${gene_set}"
+        OUTPUT_DIR="${workflow.launchDir}/${params.output_dir}/${gene_set}"
 
         mkdir -p \${OUTPUT_DIR}
 
@@ -136,7 +136,7 @@ process train_advgan {
             --labels     ${train_labels} \
             --gene-sets  ${gmt_file} \
             --set        ${gene_set} \
-            --target     ${params.input.target_class} \
+            --target     ${params.target_class} \
             --output-dir ${output_dir}
         """
 }
@@ -176,7 +176,7 @@ process perturb {
             --perturb-labels ${perturb_labels} \
             --gene-sets      ${gmt_file} \
             --set            ${gene_set} \
-            --target         ${params.input.target_class} \
+            --target         ${params.target_class} \
             --output-dir     ${output_dir}
         """
 }
@@ -212,7 +212,7 @@ process visualize {
             --perturb-labels ${perturb_labels} \
             --gene-sets      ${gmt_file} \
             --set            ${gene_set} \
-            --target         ${params.input.target_class} \
+            --target         ${params.target_class} \
             --output-dir     ${output_dir} \
             --tsne \
             --heatmap
