@@ -14,7 +14,7 @@ All of TSPG's dependencies can be installed via Anaconda. On a shared system (su
 # specific to Clemson's Palmetto cluster
 module load anaconda3/5.1.0-gcc/8.3.1
 
-conda create -n tspg python=3.6 tensorflow-gpu=1.15.0 matplotlib numpy pandas scikit-learn seaborn
+conda env create -f environment.yml
 ```
 
 You must then "activate" your environment in order to use it:
@@ -29,9 +29,9 @@ conda deactivate
 After that, simply clone this repository to use TSPG.
 ```bash
 git clone https://github.com/ctargon/TSPG.git
-cd TSPG
 
 # run the example
+cd TSPG
 example/run-example.sh
 ```
 
@@ -53,7 +53,7 @@ Sample3	4.444	5.551	6.102	0.013
 
 For large GEM files, it is recommended that you convert the GEM to numpy format using `convert.py` from the [GEMprep](https://github.com/SystemsGenetics/GEMprep) repo, as TSPG can load this binary format much more quickly than it does the plaintext format. The `convert.py` script can also transpose your GEM if it is arranged the wrong way:
 ```bash
-python bin/convert.py GEM.txt GEM.npy --transpose
+bin/convert.py GEM.txt GEM.npy --transpose
 ```
 
 This example will create three files: `GEM.npy`, `GEM.rownames.txt`, and `GEM.colnames.txt`. The latter two files contain the row names and column names, respectively. Make sure that the rows are samples and the columns are genes!
