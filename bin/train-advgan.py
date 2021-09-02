@@ -236,7 +236,7 @@ if __name__ == '__main__':
     parser.add_argument('--labels', help='list of sample labels', required=True)
     parser.add_argument('--gene-sets', help='list of curated gene sets')
     parser.add_argument('--target', help='target class')
-    parser.add_argument('--set', help='gene set to run', type=str, default='HALLMARK_ALL')
+    parser.add_argument('--set', help='gene set to run')
     parser.add_argument('--output-dir', help='Output directory', default='.')
     parser.add_argument('--test-size', help='proportional test set size', type=float, default=0.2)
     parser.add_argument('--epochs', help='number of training epochs', type=int, default=150)
