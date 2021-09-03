@@ -67,10 +67,11 @@ class Target:
 
             print('epoch: %4d, cost: %8.3f' % (epoch + 1, avg_cost))
 
-        path = '%s/target_model' % (self.output_dir)
-        os.makedirs(path, exist_ok=True)
+        # initialize output directory
+        os.makedirs(self.output_dir, exist_ok=True)
 
-        saver.save(sess, '%s/%s.ckpt' % (path, model_name))
+        # save model
+        saver.save(sess, '%s/target_model/%s.ckpt' % (self.output_dir, model_name))
         sess.close()
 
     def inference_model(self, x_test, y_test, model_name):
@@ -84,6 +85,8 @@ class Target:
 
         saver = tf.train.Saver(tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=model_name))
         sess = tf.Session()
+
+        # load model
         saver.restore(sess, '%s/target_model/%s.ckpt' % (self.output_dir, model_name))
 
         # compute accuracy

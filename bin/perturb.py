@@ -68,7 +68,7 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir='.'):
     f_saver = tf.train.Saver(f_vars)
     g_saver = tf.train.Saver(g_vars)
     f_saver.restore(sess, tf.train.latest_checkpoint('%s/target_model/' % (output_dir)))
-    g_saver.restore(sess, tf.train.latest_checkpoint('%s/generator/' % (output_dir)))
+    g_saver.restore(sess, tf.train.latest_checkpoint('%s/%s/generator/' % (output_dir, str(target))))
 
     # calculate accuracy of target model on perturbed data
     correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(y_pl, 1))

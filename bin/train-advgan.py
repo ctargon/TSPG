@@ -7,6 +7,7 @@
 '''
 import argparse
 import numpy as np
+import os
 import sklearn.model_selection
 import sklearn.preprocessing
 import sys
@@ -139,6 +140,9 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
         print('error: target model not found')
         sys.exit(1)
 
+    # intialize directory for target class
+    os.makedirs('%s/%s' % (output_dir, str(target)), exist_ok=True)
+
     # train the advgan model
     n_batches = len(x_train) // batch_size
 
@@ -206,8 +210,8 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
         print()
 
         if epoch % 10 == 0:
-            g_saver.save(sess, '%s/generator/generator.ckpt' % (output_dir))
-            d_saver.save(sess, '%s/discriminator/discriminator.ckpt' % (output_dir))
+            g_saver.save(sess, '%s/%s/generator/generator.ckpt' % (output_dir, str(target)))
+            d_saver.save(sess, '%s/%s/discriminator/discriminator.ckpt' % (output_dir, str(target)))
 
     # compute perturbation accuracy
     _, pert, y_fake, y_real = sess.run([perturb, x_perturbed, f_fake_probs, f_real_probs], feed_dict={
@@ -224,8 +228,8 @@ def AdvGAN(x_train, y_train, x_test, y_test, t_mu, t_cov, target=-1, epochs=50, 
     print()
     print('perturbation accuracy: %0.3f' % (score))
 
-    g_saver.save(sess, '%s/generator/generator.ckpt' % (output_dir))
-    d_saver.save(sess, '%s/discriminator/discriminator.ckpt' % (output_dir))
+    g_saver.save(sess, '%s/%s/generator/generator.ckpt' % (output_dir, str(target)))
+    d_saver.save(sess, '%s/%s/discriminator/discriminator.ckpt' % (output_dir, str(target)))
 
 
 

@@ -8,36 +8,54 @@ Publications based on TSPG:
 
 ## Installation
 
-All of TSPG's dependencies can be installed via Anaconda. On a shared system (such as a university research cluster), it is recommended that you install everything in an Anaconda environment:
-
+TSPG is a collection of Python scripts as well as a Nextflow pipeline which wraps the Python scripts and provides some additional functionality. All of the Python dependencies can be installed in an Anaconda environment:
 ```bash
-# specific to Clemson's Palmetto cluster
+# load Anaconda module if needed
 module load anaconda3/5.1.0-gcc/8.3.1
 
+# create conda environment called "tspg"
 conda env create -f environment.yml
 ```
 
-You must then "activate" your environment in order to use it:
+To use the Python scripts directly, clone this repository and try the example:
 ```bash
-conda activate tspg
-
-# use TSPG
-
-conda deactivate
-```
-
-After that, simply clone this repository to use TSPG.
-```bash
+# clone repository
 git clone https://github.com/ctargon/TSPG.git
-
-# run the example
 cd TSPG
-example/run-example.sh
+
+# prepare example data
+scripts/make-inputs.sh
+
+mkdir -p input
+mv example.* input
+
+# run TSPG on example data
+# (you may have to tweak this script for your environment)
+scripts/run-tspg.sh
 ```
+
+Alternatively, you can run TSPG as a Nextflow pipeline. It's a lot easier because you only need to install [Nextflow](https://nextflow.io/) and either the Anaconda environment or Docker/Singularity. After that, you can run the example data with a single command:
+```bash
+nextflow run ctargon/tspg -profile example,<conda|docker|singularity>,standard
+```
+
+If you use the Nextflow pipeline, you'll want to check out the [config file](https://github.com/ctargon/TSPG/blob/master/nextflow.config) to see the available params and profiles. Params can be supplied on the command-line, and custom profiles exist for different environments such as Palmetto's PBS scheduler, for example:
+```bash
+nextflow run ctargon/tspg \
+    -profile conda,palmetto \
+    --train_data "example.train.emx.txt" \
+    --train_labels "example.train.labels.txt" \
+    --perturb_data "example.perturb.emx.txt" \
+    --perturb_labels "example.perturb.labels.txt" \
+    --gmt_file "example.genesets.txt" \
+    --target_class "class-00,class-01"
+```
+
+The Nextflow pipeline makes it easy to run TSPG multiple times on the same data with different target classes. However, the pipeline does not currently support input files in numpy format, and the `-resume` option may not work correctly due to how TensorFlow models are saved.
 
 ## Usage
 
-TSPG consists of several phases, involving multiple scripts that are run in sequence. The easiest way to learn how to run these scripts, as well as the input / output data involved, is to run the example script as shown above. It demonstrates how to run TSPG on synthetic input data from `make-input-data.py`.
+TSPG consists of several phases, involving multiple scripts that are run in sequence.
 
 ### Input Data
 
