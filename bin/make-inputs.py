@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('--perturb-data', help='perturb dataset filename', default='example.perturb.emx.txt')
     parser.add_argument('--perturb-labels', help='perturb labels filename', default='example.perturb.labels.txt')
     parser.add_argument('--gene-sets', help='name of gene sets file', default='example.genesets.txt')
-    parser.add_argument('--visualize', help='create t-SNE plot of dataset', action='store_true')
+    parser.add_argument('--tsne', help='create t-SNE plot of dataset')
 
     args = parser.parse_args()
 
@@ -59,12 +59,12 @@ if __name__ == '__main__':
 
         gene_sets.append(['gene-set-%03d' % i] + genes)
 
-    # visualize dataset if specified
-    if args.visualize:
+    # create t-sne visualization if specified
+    if args.tsne:
         # compute t-SNE embedding
         x_tsne = sklearn.manifold.TSNE().fit_transform(x)
 
-        # plot t-SNE embedding by class
+        # plot t-SNE embedding with class labels
         plt.axis('off')
 
         for c in classes:
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
         plt.subplots_adjust(right=0.70)
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
-        plt.savefig('%s.tsne.png' % (args.train_data.split('.')[0]))
+        plt.savefig(args.tsne)
         plt.close()
 
     # split dataset into train/perturb sets
