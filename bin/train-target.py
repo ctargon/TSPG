@@ -4,8 +4,8 @@ import argparse
 import sklearn.model_selection
 import sklearn.preprocessing
 
+import target_model
 import utils
-from target_models import Target_A as Target
 
 
 
@@ -16,9 +16,9 @@ if __name__ == '__main__':
     parser.add_argument('--labels', help='list of sample labels', required=True)
     parser.add_argument('--gene-sets', help='list of curated gene sets')
     parser.add_argument('--set', help='specific gene set to run')
-    parser.add_argument('--output-dir', help='Output directory', default='.')
+    parser.add_argument('--output-dir', help='output directory', default='.')
     parser.add_argument('--test-size', help='proportional test set size', type=float, default=0.2)
-    parser.add_argument('--epochs', help='number of training epochs', type=int, default=30)
+    parser.add_argument('--epochs', help='number of training epochs', type=int, default=50)
     parser.add_argument('--batch-size', help='minibatch size', type=int, default=32)
 
     args = parser.parse_args()
@@ -72,16 +72,24 @@ if __name__ == '__main__':
 
     # adjust batch size if necessary
     if args.batch_size > len(x_train):
-        print('info: reducing batch size to train set size, consider reducing further')
+        print('warning: reducing batch size to train set size, consider reducing further')
         args.batch_size = len(x_train)
 
-    # train target model
-    clf = Target(
-        n_input=x_train.shape[1],
+    # create target model
+    model = target_model.TargetModel(
+        n_inputs=x_train.shape[1],
         n_classes=len(classes),
         epochs=args.epochs,
         batch_size=args.batch_size,
         output_dir=args.output_dir)
 
-    clf.train(x_train, y_train)
-    clf.inference(x_test, y_test)
+    # train model
+    model.fit(x_train, y_train)
+
+    # evaluate model
+    score = model.score(x_test, y_test)
+
+    print('test accuracy: %0.3f' % (score))
+
+    # save model
+    model.save()
