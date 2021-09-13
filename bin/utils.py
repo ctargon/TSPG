@@ -78,21 +78,21 @@ def load_gene_sets(filename):
     lines = [re.split(r'[\s,]+', line) for line in lines]
 
     # map each gene set into a tuple of the name and genes in the set
-    return {line[0]: line[1:] for line in lines}
+    return {line[0]: set(line[1:]) for line in lines}
 
 
 
 def filter_gene_sets(gene_sets, df_genes):
-    # compute the union of all gene sets
-    genes = list(set(sum([gene_sets[name] for name in gene_sets.keys()], [])))
-
-    # determine the genes which are not in the dataset
-    missing_genes = [g for g in genes if g not in df_genes]
+    # determine the set of genes which are in both
+    # the dataset and the list of gene sets
+    genes = set().union(*gene_sets.values())
+    df_genes = set(df_genes)
+    found_genes = genes.intersection(df_genes)
 
     # remove missing genes from each gene set
-    gene_sets = {name: [g for g in genes if g in df_genes] for name, genes in gene_sets.items()}
+    gene_sets = {name: gene_set.intersection(df_genes) for name, gene_set in gene_sets.items()}
 
-    print('%d / %d genes from gene sets were not found in the input dataset' % (len(missing_genes), len(genes)))
+    print('%d / %d genes from gene sets are in the input dataset' % (len(found_genes), len(genes)))
 
     return gene_sets
 
@@ -103,19 +103,19 @@ def onehot_encode(y, classes):
 
 
 
-def shuffle(x, y):
-    indices = np.arange(x.shape[0])
+def shuffle(*arrays):
+    indices = np.arange(arrays[0].shape[0])
     np.random.shuffle(indices)
 
-    return x[indices], y[indices]
+    return tuple(array[indices] for array in arrays)
 
 
 
-def next_batch(x, y, batch_size, index):
+def next_batch(*arrays, batch_size=None, index=None):
     a = index * batch_size
     b = index * batch_size + batch_size
 
-    return x[a:b], y[a:b]
+    return tuple(array[a:b] for array in arrays)
 
 
 

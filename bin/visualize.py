@@ -144,15 +144,14 @@ if __name__ == '__main__':
 
         print('loaded %d gene sets' % (len(gene_sets)))
     else:
-        gene_sets = {'all_genes': df_genes}
+        gene_sets = {'all_genes': set(df_genes)}
 
     # create visualizations for each gene set
-    name = args.set
-
     try:
+        name = args.set
         genes = gene_sets[name]
     except:
-        print('gene set is not the subset file provided')
+        print('error: gene set is not the subset file provided')
         sys.exit(1)
 
     # extract train/perturb data

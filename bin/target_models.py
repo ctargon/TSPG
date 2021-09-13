@@ -11,7 +11,6 @@ import utils
 
 
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.get_logger().setLevel(logging.ERROR)
 
 
@@ -59,7 +58,7 @@ class Target:
             avg_cost = 0.
 
             for i in range(n_batches):
-                batch_x, batch_y = utils.next_batch(x_train, y_train, self.batch_size, i)
+                batch_x, batch_y = utils.next_batch(x_train, y_train, batch_size=self.batch_size, index=i)
 
                 _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y, training: True})
 

@@ -80,7 +80,7 @@ def perturb_advgan(x, y, target=-1, batch_size=32, output_dir='.'):
     perturbations = []
 
     for i in range(n_batches):
-        batch_x, batch_y = utils.next_batch(x, y, batch_size, i)
+        batch_x, batch_y = utils.next_batch(x, y, batch_size=batch_size, index=i)
 
         if is_targeted:
             targets = np.full((batch_y.shape[0],), target)
@@ -162,14 +162,14 @@ if __name__ == '__main__':
 
         print('loaded %d gene sets' % (len(gene_sets)))
     else:
-        gene_sets = {'all_genes': df_perturb.columns}
+        gene_sets = {'all_genes': set(df_perturb.columns)}
 
     # select gene set
     try:
         name = args.set
         genes = gene_sets[name]
     except:
-        print('gene set is not the subset file provided')
+        print('error: gene set is not the subset file provided')
         sys.exit(1)
 
     # extract train/perturb data
