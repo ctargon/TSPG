@@ -163,7 +163,7 @@ def AdvGAN(
     # use full covariance if specified
     if target_cov == 'full':
         target_cov = np.cov(target_data, rowvar=False)
-        t_train = rng.multivariate_normal(target_mu, target_cov, size=len(x_train))
+        t_train = rng.multivariate_normal(target_mu, target_cov, size=len(x_train), method='eigh')
 
     # use diagonal covariance (as stddev) if specified
     elif target_cov == 'diagonal':
@@ -319,6 +319,10 @@ if __name__ == '__main__':
         print('error: gene set is not the subset file provided')
         sys.exit(1)
 
+    # print warning about covariance matrix if gene set is large
+    if len(genes) > 10000 and args.target_cov == 'full':
+        print('warning: gene set is very large, consider using --target-cov=diagonal')
+
     # extract dataset
     X = df[genes]
     y = utils.onehot_encode(labels, classes)
@@ -335,7 +339,7 @@ if __name__ == '__main__':
 
     # adjust batch size if necessary
     if args.batch_size > len(x_train):
-        print('info: reducing batch size to train set size, consider reducing further')
+        print('warning: reducing batch size to train set size, consider reducing further')
         args.batch_size = len(x_train)
 
     # train advgan model

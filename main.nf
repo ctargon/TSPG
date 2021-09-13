@@ -189,6 +189,7 @@ process train_advgan {
             --gene-sets  ${gmt_file} \
             --set        ${gene_set} \
             --target     ${target} \
+            --target-cov ${params.target_cov} \
             --output-dir ${output_dir}
         """
 }
