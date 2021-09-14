@@ -164,7 +164,7 @@ TARGET_MODELS_FROM_TRAIN_TARGET
  * input features.
  */
 process train_advgan {
-    tag "${gene_set}"
+    tag "${gene_set}/${target}"
     label "gpu"
 
     input:
@@ -213,7 +213,7 @@ TARGET_MODELS_FOR_PERTURB
  * to the target class.
  */
 process perturb {
-    tag "${gene_set}"
+    tag "${gene_set}/${target}"
     label "gpu"
 
     input:
@@ -253,7 +253,7 @@ process perturb {
  * samples for a given gene set and target class.
  */
 process visualize {
-    tag "${gene_set}"
+    tag "${gene_set}/${target}"
 
     input:
         each file(train_data) from TRAIN_DATA_FOR_VISUALIZE
