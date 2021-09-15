@@ -1,7 +1,5 @@
-import logging
 import numpy as np
 import os
-import sklearn.metrics
 from tensorflow import keras
 
 

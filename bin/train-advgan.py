@@ -3,7 +3,6 @@
 import argparse
 import numpy as np
 import os
-import sklearn.metrics
 import sklearn.model_selection
 import sklearn.preprocessing
 import sys

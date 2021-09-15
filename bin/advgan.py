@@ -28,8 +28,7 @@ def discriminator(n_inputs, hidden_layer_sizes=[512, 256, 128]):
 
 
 
-def DenseBatchNormRelu(x, units):
-
+def dense_batchnorm_relu(x, units):
     x = keras.layers.Dense(units=units)(x)
     x = keras.layers.BatchNormalization()(x)
     x = keras.layers.ReLU()(x)
@@ -38,8 +37,7 @@ def DenseBatchNormRelu(x, units):
 
 
 
-def ResBlock(x_input, units):
-
+def res_block(x_input, units):
     x = x_input
     x = keras.layers.Dense(units=units)(x)
     x = keras.layers.BatchNormalization()(x)
@@ -58,15 +56,15 @@ def generator(n_inputs):
 
     # define encoding layers
     for units in [512, 256, 128]:
-        x = DenseBatchNormRelu(x, units=units)
+        x = dense_batchnorm_relu(x, units=units)
 
     # define residual blocks
     for units in [128, 128, 128]:
-        x = ResBlock(x, units=units)
+        x = res_block(x, units=units)
 
     # define decoding layers
     for units in [256, 512]:
-        x = DenseBatchNormRelu(x, units=units)
+        x = dense_batchnorm_relu(x, units=units)
 
     # define output layer
     p_output = keras.layers.Dense(units=n_inputs, activation='tanh')(x)
@@ -76,39 +74,10 @@ def generator(n_inputs):
 
 
 
-def advgan_loss(alpha=1.0, beta=1.0, lmbda=1.0):
-    # define helper functions
-    def adv_loss(labels, preds):
-        real = tf.reduce_sum(labels * preds, 1)
-        other = tf.reduce_max((1 - labels) * preds - (labels * 10000), 1)
-        return tf.reduce_sum(tf.maximum(0.0, other - real))
-
-    def perturb_loss(preds, epsilon=1e-8):
-        preds = tf.reshape(preds, (tf.shape(preds)[0], -1))
-        norm = tf.norm(preds, axis=1)
-        return tf.reduce_mean(norm + epsilon)
-
-    # define loss function
-    def loss_fn(labels, preds):
-        # unpack preds
-        target_normal, p, x_fake, d_fake, f_fake = preds
-
-        # define adversarial loss (encourage misclassification)
-        l_adv = adv_loss(labels, f_fake)
-
-        # define GAN loss (fool the discriminator)
-        g_loss_fake = keras.losses.mean_squared_error(tf.ones_like(d_fake), d_fake)
-
-        # define perturbation loss (encourage minimal perturbation)
-        l_perturb = perturb_loss(p, epsilon=1.0)
-
-        # define target distribution loss (encourage realism of perturbed sample)
-        l_target = keras.losses.mean_absolute_error(x_fake, target_normal)
-
-        # define generator loss
-        return l_adv + alpha*g_loss_fake + beta*l_perturb + lmbda*l_target
-
-    return loss_fn
+def adversarial_loss(labels, preds, kappa=0.0):
+    fake = tf.reduce_max((1 - labels) * preds - (labels * 10000), axis=-1)
+    real = tf.reduce_sum(labels * preds, axis=-1)
+    return tf.reduce_sum(tf.maximum(fake - real, kappa))
 
 
 
@@ -126,8 +95,6 @@ class AdvGAN(keras.Model):
         super(AdvGAN, self).__init__()
 
         # save attributes
-        self.n_inputs = n_inputs
-        self.n_classes = n_classes
         self.target = target
         self.output_dir = output_dir
 
@@ -159,19 +126,24 @@ class AdvGAN(keras.Model):
             self.discriminator = discriminator(n_inputs)
 
         # define loss trackers
-        self.g_loss_tracker = keras.metrics.Mean(name="g_loss")
-        self.d_loss_tracker = keras.metrics.Mean(name="d_loss")
+        losses = [
+            'loss_d',
+            'loss_adv',
+            'loss_gan',
+            'loss_norm',
+            'loss_td'
+        ]
+
+        self.trackers = {name: keras.metrics.Mean(name=name) for name in losses}
 
     @property
     def metrics(self):
-        return [self.g_loss_tracker, self.d_loss_tracker]
+        return self.trackers.values()
 
     def compile(self):
         super(AdvGAN, self).compile()
-        self.g_optimizer = keras.optimizers.Adam(learning_rate=0.0002)
         self.d_optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-        self.g_loss_fn = advgan_loss()
-        self.d_loss_fn = keras.losses.MeanSquaredError()
+        self.g_optimizer = keras.optimizers.Adam(learning_rate=0.0002)
 
     def train_step(self, data):
         # unpack arguments
@@ -194,52 +166,69 @@ class AdvGAN(keras.Model):
 
         # prepare training data for discriminator
         d_inputs = tf.concat([x, x_fake], axis=0)
-        d_labels = tf.concat([
-            tf.ones((batch_size, 1)),
-            tf.zeros((batch_size, 1))
-        ], axis=0)
+
+        d_labels_real = tf.ones((batch_size, 1))
+        d_labels_fake = tf.zeros((batch_size, 1))
+        d_labels = tf.concat([d_labels_real, d_labels_fake], axis=0)
 
         # train the discriminator
         with tf.GradientTape() as tape:
-            d_preds = self.discriminator(d_inputs)
-            d_loss = self.d_loss_fn(d_labels, d_preds)
+            d_preds = self.discriminator(d_inputs, training=True)
+            d_loss = keras.losses.mean_squared_error(d_labels, d_preds)
 
-        grads = tape.gradient(d_loss, self.discriminator.trainable_weights)
-        self.d_optimizer.apply_gradients(
-            zip(grads, self.discriminator.trainable_weights)
-        )
+        trainable_weights = self.discriminator.trainable_weights
+        grads = tape.gradient(d_loss, trainable_weights)
+        self.d_optimizer.apply_gradients(zip(grads, trainable_weights))
 
         # train the generator
         with tf.GradientTape() as tape:
             # compute perturbed samples
-            p = self.generator(x)
+            p = self.generator(x, training=True)
             x_fake = tf.clip_by_value(x + p, 0, 1)
 
             # feed perturbed samples to discriminator
-            d_fake = self.discriminator(x_fake, training=False)
+            d_preds = self.discriminator(x_fake, training=False)
 
             # feed perturbed samples to target model
-            f_fake = self.target_model(x_fake, training=False)
+            f_preds = self.target_model(x_fake, training=False)
 
-            # compute loss
-            labels = tf.zeros((batch_size, 1))
-            preds = target_normal, p, x_fake, d_fake, f_fake
+            # compute adversarial loss (encourage misclassification)
+            l_adv = adversarial_loss(y, f_preds)
 
-            g_loss = self.g_loss_fn(labels, preds)
+            # compute GAN loss (fool the discriminator)
+            l_gan = keras.losses.mean_squared_error(d_labels_real, d_preds)
 
-        grads = tape.gradient(g_loss, self.generator.trainable_weights)
-        self.g_optimizer.apply_gradients(
-            zip(grads, self.generator.trainable_weights)
-        )
+            # compute perturbation loss (encourage minimal perturbation)
+            epsilon = 1.0
+            l_norm = tf.reduce_mean(tf.norm(p, ord=2) + epsilon)
 
-        # monitor loss
-        self.g_loss_tracker.update_state(g_loss)
-        self.d_loss_tracker.update_state(d_loss)
+            # compute target distribution loss (encourage realism of perturbed samples)
+            l_td = keras.losses.mean_absolute_error(x_fake, target_normal)
 
-        return {
-            'g_loss': self.g_loss_tracker.result(),
-            'd_loss': self.d_loss_tracker.result()
+            # define generator loss
+            alpha_1 = 1.0
+            alpha_2 = 1.0
+            alpha_3 = 1.0
+            alpha_4 = 1.0
+            g_loss = alpha_1*l_adv + alpha_2*l_gan + alpha_3*l_norm + alpha_4*l_td
+
+        trainable_weights = self.generator.trainable_weights
+        grads = tape.gradient(g_loss, trainable_weights)
+        self.g_optimizer.apply_gradients(zip(grads, trainable_weights))
+
+        # update metrics
+        metrics = {
+            'loss_d': d_loss,
+            'loss_adv': l_adv,
+            'loss_gan': l_gan,
+            'loss_norm': l_norm,
+            'loss_td': l_td
         }
+
+        for name, value in metrics.items():
+            self.trackers[name].update_state(value)
+
+        return {m.name: m.result() for m in self.metrics}
 
     def perturb(self, x):
         # compute perturbations, perturbed samples
@@ -271,9 +260,9 @@ class AdvGAN(keras.Model):
         os.makedirs(self.output_dir, exist_ok=True)
 
         # save generator, discriminator
-        self.generator.save('%s/generator_%d.h5' % (self.output_dir, self.target))
-        self.discriminator.save('%s/discriminator_%d.h5' % (self.output_dir, self.target))
+        self.generator.save('%s/%d_generator.h5' % (self.output_dir, self.target))
+        self.discriminator.save('%s/%d_discriminator.h5' % (self.output_dir, self.target))
 
     def load(self):
-        self.generator = keras.models.load_model('%s/generator_%d.h5' % (self.output_dir, self.target))
-        self.discriminator = keras.models.load_model('%s/discriminator_%d.h5' % (self.output_dir, self.target))
+        self.generator = keras.models.load_model('%s/%d_generator.h5' % (self.output_dir, self.target))
+        self.discriminator = keras.models.load_model('%s/%d_discriminator.h5' % (self.output_dir, self.target))

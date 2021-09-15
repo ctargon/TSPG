@@ -16,7 +16,7 @@ import utils
 
 
 def get_class_mean(x, y, k):
-    return x[np.argmax(y, axis=1) == k].mean(axis=0)
+    return np.mean(x[np.argmax(y, axis=1) == k], axis=0)
 
 
 

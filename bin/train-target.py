@@ -87,8 +87,7 @@ if __name__ == '__main__':
         x_train,
         y_train,
         batch_size=args.batch_size,
-        epochs=args.epochs,
-        validation_split=0.1)
+        epochs=args.epochs)
 
     # evaluate model
     y_pred = model(x_test, training=False)
