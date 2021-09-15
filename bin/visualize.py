@@ -47,7 +47,7 @@ def plot_tsne(x, y, classes, class_indices, n_pca=None, x_pert=None, y_pert=None
     plt.subplots_adjust(right=0.70)
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
     plt.tight_layout()
-    plt.savefig('%s/tsne.png' % (output_dir))
+    plt.savefig('%s/%s.tsne.png' % (output_dir, classes[target]))
     plt.close()
 
 
