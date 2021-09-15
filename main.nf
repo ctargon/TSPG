@@ -114,6 +114,7 @@ PERTURB_LABELS
  * gene set as the input features.
  */
 process train_target {
+    publishDir "${params.output_dir}/${gene_set}"
     tag "${gene_set}"
     label "gpu"
 
@@ -124,7 +125,7 @@ process train_target {
         each gene_set from GENE_SETS
 
     output:
-        set val(gene_set), val("${workflow.launchDir}/${params.output_dir}/${gene_set}") into TARGET_MODELS_FROM_TRAIN_TARGET
+        set val(gene_set), file("target_model.h5") into TARGET_MODELS
 
     script:
         """
@@ -132,16 +133,11 @@ process train_target {
         echo "#TRACE n_genes=`grep ${gene_set} ${gmt_file} | wc -w`"
         echo "#TRACE n_train_samples=`tail -n +1 ${train_data} | wc -l`"
 
-        OUTPUT_DIR="${workflow.launchDir}/${params.output_dir}/${gene_set}"
-
-        mkdir -p \${OUTPUT_DIR}
-
         train-target.py \
             --dataset    ${train_data} \
             --labels     ${train_labels} \
             --gene-sets  ${gmt_file} \
-            --set        ${gene_set} \
-            --output-dir \${OUTPUT_DIR}
+            --set        ${gene_set}
         """
 }
 
@@ -150,7 +146,7 @@ process train_target {
 /**
  * Send target models to each channel that consumes them.
  */
-TARGET_MODELS_FROM_TRAIN_TARGET
+TARGET_MODELS
     .into {
         TARGET_MODELS_FOR_TRAIN_ADVGAN;
         TARGET_MODELS_FOR_PERTURB
@@ -164,6 +160,7 @@ TARGET_MODELS_FROM_TRAIN_TARGET
  * input features.
  */
 process train_advgan {
+    publishDir "${params.output_dir}/${gene_set}"
     tag "${gene_set}/${target}"
     label "gpu"
 
@@ -171,11 +168,11 @@ process train_advgan {
         each file(train_data) from TRAIN_DATA_FOR_TRAIN_ADVGAN
         each file(train_labels) from TRAIN_LABELS_FOR_TRAIN_ADVGAN
         each file(gmt_file) from GMT_FILE_FOR_TRAIN_ADVGAN
-        set val(gene_set), val(output_dir) from TARGET_MODELS_FOR_TRAIN_ADVGAN
+        set val(gene_set), file(target_model) from TARGET_MODELS_FOR_TRAIN_ADVGAN
         each target from Channel.fromList( params.targets.tokenize(',') )
 
     output:
-        set val(gene_set), val(target), val(output_dir) into GENERATORS_FOR_PERTURB
+        set val(gene_set), val(target), file("*.h5") into ADVGAN_MODELS
 
     script:
         """
@@ -189,8 +186,7 @@ process train_advgan {
             --gene-sets  ${gmt_file} \
             --set        ${gene_set} \
             --target     ${target} \
-            --target-cov ${params.target_cov} \
-            --output-dir ${output_dir}
+            --target-cov ${params.target_cov}
         """
 }
 
@@ -201,8 +197,8 @@ process train_advgan {
  * generator models for the perturb process.
  */
 TARGET_MODELS_FOR_PERTURB
-    .cross(GENERATORS_FOR_PERTURB)
-    .map { it -> it[1] }
+    .cross(ADVGAN_MODELS)
+    .map { it -> [it[0][0], it[0][1], it[1][1], it[1][2]] }
     .set { MODELS_FOR_PERTURB }
 
 
@@ -213,6 +209,7 @@ TARGET_MODELS_FOR_PERTURB
  * to the target class.
  */
 process perturb {
+    publishDir "${params.output_dir}/${gene_set}"
     tag "${gene_set}/${target}"
     label "gpu"
 
@@ -222,10 +219,10 @@ process perturb {
         each file(perturb_data) from PERTURB_DATA_FOR_PERTURB
         each file(perturb_labels) from PERTURB_LABELS_FOR_PERTURB
         each file(gmt_file) from GMT_FILE_FOR_PERTURB
-        set val(gene_set), val(target), val(output_dir) from MODELS_FOR_PERTURB
+        set val(gene_set), file(target_model), val(target), file(advgan_models) from MODELS_FOR_PERTURB
 
     output:
-        set val(gene_set), val(target), val(output_dir) into SAMPLE_PERTURBATIONS
+        set val(gene_set), val(target), file("*.perturbations.samples.txt") into SAMPLE_PERTURBATIONS
 
     script:
         """
@@ -241,8 +238,7 @@ process perturb {
             --perturb-labels ${perturb_labels} \
             --gene-sets      ${gmt_file} \
             --set            ${gene_set} \
-            --target         ${target} \
-            --output-dir     ${output_dir}
+            --target         ${target}
         """
 }
 
@@ -253,6 +249,7 @@ process perturb {
  * samples for a given gene set and target class.
  */
 process visualize {
+    publishDir "${params.output_dir}/${gene_set}"
     tag "${gene_set}/${target}"
 
     input:
@@ -261,7 +258,10 @@ process visualize {
         each file(perturb_data) from PERTURB_DATA_FOR_VISUALIZE
         each file(perturb_labels) from PERTURB_LABELS_FOR_VISUALIZE
         each file(gmt_file) from GMT_FILE_FOR_VISUALIZE
-        set val(gene_set), val(target), val(output_dir) from SAMPLE_PERTURBATIONS
+        set val(gene_set), val(target), file(sample_perturbations) from SAMPLE_PERTURBATIONS
+
+    output:
+        file("*.png")
 
     script:
         """
@@ -278,7 +278,6 @@ process visualize {
             --gene-sets      ${gmt_file} \
             --set            ${gene_set} \
             --target         ${target} \
-            --output-dir     ${output_dir} \
             --tsne \
             --heatmap
         """

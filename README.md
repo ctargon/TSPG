@@ -54,7 +54,7 @@ nextflow run ctargon/tspg \
     --target_class "class-00,class-01"
 ```
 
-The Nextflow pipeline makes it easy to run TSPG multiple times on the same data with different target classes. However, the pipeline does not currently support input files in numpy format, and the `-resume` option may not work correctly due to how TensorFlow models are saved.
+The Nextflow pipeline makes it easy to run TSPG multiple times on the same data with different target classes. However, the pipeline does not currently support input files in numpy format.
 
 ## Usage
 

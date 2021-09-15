@@ -4,7 +4,6 @@
 #PBS -j oe
 
 set -e
-
 export TF_CPP_MIN_LOG_LEVEL="3"
 
 # This should be the directory where you cloned the TSPG repository
@@ -72,7 +71,6 @@ ${TSPG_DIR}/bin/perturb.py \
     --set             ${GENE_SET} \
     --target          ${TARGET_CLASS} \
     --output-dir      ${TMPDIR}/${OUTPUT_DIR}
-
 
 # create t-SNE and heatmap visualizations of perturbed samples for a gene set
 echo
