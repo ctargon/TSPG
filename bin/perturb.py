@@ -8,11 +8,10 @@ import os
 import sklearn.model_selection
 import sklearn.preprocessing
 import sys
-import tensorflow as tf
+from tensorflow import keras
 
-import generator
+import advgan
 import utils
-from target_models import Target_A as target_model
 
 
 
@@ -32,75 +31,24 @@ def perturb_mean_diff(x, y, target, classes):
         # compute difference between source and target mean
         perturbations.append(mu_target - mu_source)
 
-    return np.vstack(perturbations).T
+    return np.vstack(perturbations)
 
 
 
-def perturb_advgan(x, y, target=-1, batch_size=32, output_dir='.'):
-    x_pl = tf.placeholder(tf.float32, [None, x.shape[-1]])
-    y_pl = tf.placeholder(tf.float32, [None, y.shape[-1]])
-    is_training = tf.placeholder(tf.bool, [])
-    is_training_target = tf.placeholder(tf.bool, [])
+def perturb_advgan(x, y, target, classes, output_dir='.'):
+    # load pre-trained advgan model
+    model = advgan.AdvGAN(
+        n_inputs=x.shape[1],
+        n_classes=len(classes),
+        target=target,
+        preload=True,
+        output_dir=output_dir)
 
-    if target != -1:
-        is_targeted = True
-    else:
-        is_targeted = False
+    # compute perturbations
+    y_real = model.predict_target(x)
+    score, x_fake, p, y_fake = model.score(x, y)
 
-    # generate pertubation, add to original, clip to valid expression level
-    p_pl, logit_perturb = generator.generator(x_pl, is_training)
-    x_perturbed = x_pl + p_pl
-    x_perturbed = tf.clip_by_value(x_perturbed, 0, 1)
-
-    # instantiate target model, create graphs for original and perturbed data
-    f = target_model(n_input=x.shape[-1], n_classes=y.shape[-1])
-    f_real_logits, f_real_probs = f.Model(x_pl, is_training_target)
-    f_fake_logits, f_fake_probs = f.Model(x_perturbed, is_training_target)
-
-    # get variables
-    t_vars = tf.trainable_variables()
-    f_vars = [var for var in t_vars if 'Model_A' in var.name]
-    g_vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='generator')
-
-    sess = tf.Session()
-
-    # load checkpoints
-    f_saver = tf.train.Saver(f_vars)
-    g_saver = tf.train.Saver(g_vars)
-    f_saver.restore(sess, tf.train.latest_checkpoint('%s/target_model/' % (output_dir)))
-    g_saver.restore(sess, tf.train.latest_checkpoint('%s/%s/generator/' % (output_dir, str(target))))
-
-    # calculate accuracy of target model on perturbed data
-    correct_prediction = tf.equal(tf.argmax(f_fake_probs, 1), tf.argmax(y_pl, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, 'float'))
-
-    # generate perturbed samples from original samples
-    n_batches = math.ceil(len(x) / batch_size)
-    scores = []
-    perturbations = []
-
-    for i in range(n_batches):
-        batch_x, batch_y = utils.next_batch(x, y, batch_size=batch_size, index=i)
-
-        if is_targeted:
-            targets = np.full((batch_y.shape[0],), target)
-            batch_y_pert = np.eye(y_pl.shape[-1])[targets]
-
-        score, _, batch_x_pert, batch_p = sess.run([accuracy, f_fake_probs, x_perturbed, p_pl], feed_dict={
-            x_pl: batch_x,
-            y_pl: batch_y_pert,
-            is_training: False,
-            is_training_target: False
-        })
-        scores.append(score)
-        perturbations.append(batch_p)
-
-    print('perturbation accuracy: %0.3f' % (sum(scores) / len(scores)))
-
-    # perform post-processing of perturbations
-    p = np.vstack(perturbations)
-    p = np.clip(x + p, 0, 1) - x
-    p = p.T
+    print('perturbation accuracy: %0.3f' % (score))
 
     return p
 
@@ -115,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--perturb-labels', help='perturb labels', required=True)
     parser.add_argument('--gene-sets', help='list of curated gene sets')
     parser.add_argument('--set', help='specific gene set to run')
-    parser.add_argument('--target', help='target class')
+    parser.add_argument('--target', help='target class', required=True)
     parser.add_argument('--output-dir', help='Output directory', default='.')
     parser.add_argument('--baseline', help='create baseline (mean diff) perturbations', action='store_true')
 
@@ -144,11 +92,8 @@ if __name__ == '__main__':
 
     # determine target class
     try:
-        if args.target == None:
-            args.target = -1
-        else:
-            args.target = classes.index(args.target)
-            print('target class is: %s' % (classes[args.target]))
+        args.target = classes.index(args.target)
+        print('target class is: %s' % (classes[args.target]))
     except ValueError:
         print('error: class %s not found in dataset' % (args.target))
         sys.exit(1)
@@ -176,10 +121,8 @@ if __name__ == '__main__':
     x_train = df_train[genes]
     x_perturb = df_perturb[genes]
 
-    y_train = utils.onehot_encode(y_train, classes)
-    y_perturb = utils.onehot_encode(y_perturb, classes)
-
-    genes = x_train.columns
+    y_train = keras.utils.to_categorical(y_train, num_classes=len(classes))
+    y_perturb = keras.utils.to_categorical(y_perturb, num_classes=len(classes))
 
     # normalize perturb data (using the train data)
     scaler = sklearn.preprocessing.MinMaxScaler()
@@ -199,7 +142,7 @@ if __name__ == '__main__':
 
         # save mean peturbations to dataframe
         p_means = pd.DataFrame(
-            data=p_means,
+            data=p_means.T,
             index=genes,
             columns=classes)
 
@@ -212,11 +155,12 @@ if __name__ == '__main__':
         x_perturb,
         y_perturb,
         args.target,
+        classes,
         output_dir=args.output_dir)
 
     # save sample perturbations to dataframe
     p_samples = pd.DataFrame(
-        data=p_samples,
+        data=p_samples.T,
         index=genes,
         columns=df_perturb.index)
 

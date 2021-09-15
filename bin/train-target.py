@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
+import numpy as np
 import sklearn.model_selection
 import sklearn.preprocessing
+from tensorflow import keras
 
 import target_model
 import utils
@@ -58,7 +60,7 @@ if __name__ == '__main__':
 
     # extract dataset
     X = df[genes]
-    y = utils.onehot_encode(labels, classes)
+    y = keras.utils.to_categorical(labels, num_classes=len(classes))
 
     # create train/test sets
     x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=args.test_size)
@@ -76,20 +78,26 @@ if __name__ == '__main__':
         args.batch_size = len(x_train)
 
     # create target model
-    model = target_model.TargetModel(
-        n_inputs=x_train.shape[1],
-        n_classes=len(classes),
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        output_dir=args.output_dir)
+    model = target_model.create(
+        n_inputs=len(genes),
+        n_classes=len(classes))
 
     # train model
-    model.fit(x_train, y_train)
+    model.fit(
+        x_train,
+        y_train,
+        batch_size=args.batch_size,
+        epochs=args.epochs,
+        validation_split=0.1)
 
     # evaluate model
-    score = model.score(x_test, y_test)
+    y_pred = model(x_test, training=False)
+    loss, accuracy = model.evaluate(x_test, y_test, verbose=False)
 
-    print('test accuracy: %0.3f' % (score))
+    print('original labels:      ', np.argmax(y_test[:32], axis=1))
+    print('original predictions: ', np.argmax(y_pred[:32], axis=1))
+    print()
+    print('target model accuracy: %0.3f' % (accuracy))
 
     # save model
-    model.save()
+    target_model.save(model, args.output_dir)

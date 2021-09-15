@@ -1,7 +1,6 @@
 import copy
 import numpy as np
 import pandas as pd
-import sklearn.preprocessing
 import sys
 import re
 
@@ -60,13 +59,12 @@ def load_labels(filename, classes=None):
     labels = pd.read_csv(filename, sep='\t', header=None, index_col=0)
     labels = labels[1].values
 
+    # infer list of classes if needed
+    if classes == None:
+        classes = sorted(set(labels))
+
     # convert categorical labels to numerical labels
-    if classes != None:
-        labels = np.array([classes.index(l) for l in labels])
-    else:
-        encoder = sklearn.preprocessing.LabelEncoder()
-        labels = encoder.fit_transform(labels)
-        classes = list(encoder.classes_)
+    labels = np.array([classes.index(l) for l in labels])
 
     return labels, classes
 
@@ -90,32 +88,11 @@ def filter_gene_sets(gene_sets, df_genes):
     found_genes = genes.intersection(df_genes)
 
     # remove missing genes from each gene set
-    gene_sets = {name: gene_set.intersection(df_genes) for name, gene_set in gene_sets.items()}
+    gene_sets = {name: sorted(gene_set.intersection(df_genes)) for name, gene_set in gene_sets.items()}
 
     print('%d / %d genes from gene sets are in the input dataset' % (len(found_genes), len(genes)))
 
     return gene_sets
-
-
-
-def onehot_encode(y, classes):
-    return np.eye(len(classes))[y]
-
-
-
-def shuffle(*arrays):
-    indices = np.arange(arrays[0].shape[0])
-    np.random.shuffle(indices)
-
-    return tuple(array[indices] for array in arrays)
-
-
-
-def next_batch(*arrays, batch_size=None, index=None):
-    a = index * batch_size
-    b = index * batch_size + batch_size
-
-    return tuple(array[a:b] for array in arrays)
 
 
 

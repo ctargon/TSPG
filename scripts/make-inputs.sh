@@ -2,7 +2,7 @@
 # Create synthetic input data for TSPG.
 
 module purge
-module load anaconda3/5.1.0
+module load anaconda3/5.1.0-gcc
 
 bin/make-inputs.py \
     --n-samples 1000 \

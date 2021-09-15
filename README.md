@@ -6,6 +6,9 @@ Publications based on TSPG:
 - [Cellular State Transformations Using Deep Learning for Precision Medicine Applications](https://www.cell.com/patterns/fulltext/S2666-3899(20)30115-X)
 - [Cellular State Transformations using Generative Adversarial Networks](https://arxiv.org/abs/1907.00118) (arXiv preprint)
 
+Publications TSPG is based on:
+- [Generating Adversarial Examples with Adversarial Networks](https://arxiv.org/pdf/1801.02610.pdf)
+
 ## Installation
 
 TSPG is a collection of Python scripts as well as a Nextflow pipeline which wraps the Python scripts and provides some additional functionality. All of the Python dependencies can be installed in an Anaconda environment:
