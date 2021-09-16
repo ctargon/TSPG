@@ -35,14 +35,14 @@ def plot_tsne(x, y, classes, class_indices, n_pca=None, x_pert=None, y_pert=None
     for k in class_indices:
         indices = (y == k)
         if indices.sum() > 0:
-            plt.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75)
+            plt.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75, edgecolors='w')
 
     if target != -1:
         for k in class_indices:
             indices = (y_pert == k)
             if indices.sum() > 0:
                 label = '%s (perturbed)' % (classes[k])
-                plt.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25)
+                plt.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25, edgecolors='w')
 
     plt.subplots_adjust(right=0.70)
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
