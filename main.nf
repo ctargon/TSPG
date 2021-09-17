@@ -279,6 +279,7 @@ process visualize {
             --set            ${gene_set} \
             --target         ${target} \
             --tsne \
+            --tsne-npca      ${params.tsne_npca} \
             --heatmap
         """
 }

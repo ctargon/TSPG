@@ -24,6 +24,10 @@ def plot_tsne(
     # merge original and perturbed data (if provided)
     x_merged = np.vstack([x, x_pert])
 
+    # validate n_pca argument
+    if n_pca != None:
+        n_pca = min(n_pca, *x_merged.shape)
+
     # compute PCA embedding of merged data
     x_pca = sklearn.decomposition.PCA(n_components=n_pca).fit_transform(x_merged)
 

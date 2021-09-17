@@ -87,6 +87,7 @@ ${TSPG_DIR}/bin/visualize.py \
     --target          ${TARGET_CLASS} \
     --output-dir      ${TMPDIR}/${OUTPUT_DIR} \
     --tsne \
+    --tsne-npca 50 \
     --heatmap
 
 # save output data to permanent storage
