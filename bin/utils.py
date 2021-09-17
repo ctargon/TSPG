@@ -43,7 +43,7 @@ def save_dataframe(filename, df):
         df.to_csv(filename, sep='\t', na_rep='NA', float_format='%.8f')
     elif ext == 'npy':
         # save data matrix to binary file
-        np.save(filename, np.array(df.values, dtype=np.float32, order='F'))
+        np.save(filename, np.array(df.to_numpy(), dtype=np.float32, order='F'))
 
         # save row names and column names to text files
         np.savetxt('%s.rownames.txt' % basename, df.index, fmt='%s')
@@ -57,7 +57,7 @@ def save_dataframe(filename, df):
 def load_labels(filename, classes=None):
     # load labels file
     labels = pd.read_csv(filename, sep='\t', header=None, index_col=0)
-    labels = labels[1].values
+    labels = labels[1].to_numpy()
 
     # infer list of classes if needed
     if classes == None:

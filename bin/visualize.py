@@ -12,15 +12,20 @@ import utils
 
 
 
-def plot_tsne(x, y, classes, class_indices, n_pca=None, x_pert=None, y_pert=None, target=-1, output_dir='.'):
+def plot_tsne(
+    x, y,
+    x_pert, y_pert,
+    target,
+    classes,
+    class_indices,
+    n_pca=None,
+    output_dir='.'):
+
     # merge original and perturbed data (if provided)
-    if target != -1:
-        x_merged = np.vstack([x, x_pert])
-    else:
-        x_merged = x
+    x_merged = np.vstack([x, x_pert])
 
     # compute PCA embedding of merged data
-    x_pca = sklearn.decomposition.PCA(n_components=n_pca, copy=False).fit_transform(x_merged)
+    x_pca = sklearn.decomposition.PCA(n_components=n_pca).fit_transform(x_merged)
 
     # compute t-SNE embedding of merged data
     x_tsne = sklearn.manifold.TSNE(n_components=2).fit_transform(x_pca)
@@ -29,55 +34,78 @@ def plot_tsne(x, y, classes, class_indices, n_pca=None, x_pert=None, y_pert=None
     x      = x_tsne[:len(x)]
     x_pert = x_tsne[len(x):]
 
-    # plot t-SNE embedding by class
+    # initialize figure
     plt.axis('off')
 
+    # plot original data
     for k in class_indices:
         indices = (y == k)
-        if indices.sum() > 0:
-            plt.scatter(x[indices, 0], x[indices, 1], label=classes[k], alpha=0.75, edgecolors='w')
+        if np.any(indices):
+            plt.scatter(
+                x[indices, 0],
+                x[indices, 1],
+                label=classes[k],
+                edgecolors='w')
 
-    if target != -1:
-        for k in class_indices:
-            indices = (y_pert == k)
-            if indices.sum() > 0:
-                label = '%s (perturbed)' % (classes[k])
-                plt.scatter(x_pert[indices, 0], x_pert[indices, 1], label=label, alpha=0.25, edgecolors='w')
+    # plot perturbed data
+    for k in class_indices:
+        indices = (y_pert == k)
+        if np.any(indices):
+            label = '%s (perturbed)' % (classes[k])
+            plt.scatter(
+                x_pert[indices, 0],
+                x_pert[indices, 1],
+                label=label,
+                alpha=0.25,
+                edgecolors='w')
 
+    # plot legend
     plt.subplots_adjust(right=0.70)
     plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
     plt.tight_layout()
     plt.savefig('%s/%s.tsne.png' % (output_dir, classes[target]))
     plt.close()
 
 
 
-def plot_heatmap(df, sample_name, source_class, target_class, output_dir='.'):
-    fig, ax = plt.subplots(1, len(df.columns))
+def plot_heatmap(
+    data,
+    sample_name,
+    source_class,
+    target_class,
+    output_dir='.'):
 
-    for i in range(len(df.columns)):
-        # get the vector, then tile it some so it is visible if very long
-        column = np.expand_dims(df[df.columns[i]], -1)
-        column = np.tile(column, (1, max(1, int(column.shape[0] / 10))))
+    # initialize figure
+    fig, axes = plt.subplots(1, len(data.columns))
 
-        # plot tiled vector as heatmap image
-        im = ax[i].imshow(column, cmap='seismic')
+    # plot heatmap of each column
+    for i in range(len(data.columns)):
+        column = data.columns[i]
+        ax = axes[i]
+
+        # expand column into a matrix with 1:10 aspect ratio
+        x = np.expand_dims(data[column], -1)
+        x = np.repeat(x, max(1, len(x) // 10), axis=1)
+
+        # plot heatmap
+        im = ax.imshow(x, cmap='seismic')
         im.set_clim(-1, 1)
 
-        ax[i].set_title(df.columns[i])
-        ax[i].set_xticks([])
-        ax[i].set_xticklabels([])
+        ax.set_title(column)
+        ax.set_xticks([])
+        ax.set_xticklabels([])
 
         # display row names if there aren't too many
-        if i == 0 and len(df.index) < 30:
-            ax[i].set_yticks(np.arange(len(df.index)))
-            ax[i].set_yticklabels(df.index)
+        if i == 0 and len(data.index) < 30:
+            ax.set_yticks(np.arange(len(data.index)))
+            ax.set_yticklabels(data.index)
         else:
-            ax[i].set_yticks([])
-            ax[i].set_yticklabels([])
+            ax.set_yticks([])
+            ax.set_yticklabels([])
 
-    # insert colobar and shrink it some
-    cbar = ax[-1].figure.colorbar(im, ax=ax[-1], shrink=0.5)
+    # plot colobar
+    cbar = axes[-1].figure.colorbar(im, ax=axes[-1], shrink=0.5)
     cbar.ax.set_ylabel('Expression Level', rotation=-90, va='bottom')
 
     plt.tight_layout()
@@ -98,7 +126,7 @@ if __name__ == '__main__':
     parser.add_argument('--tsne', help='plot t-SNE of samples', action='store_true')
     parser.add_argument("--tsne-npca", help="number of principal components to take before t-SNE", type=int)
     parser.add_argument('--heatmap', help='plot heatmaps of sample perturbations', action='store_true')
-    parser.add_argument('--target', help='target class')
+    parser.add_argument('--target', help='target class', required=True)
     parser.add_argument('--output-dir', help='output directory', default='.')
 
     args = parser.parse_args()
@@ -126,11 +154,8 @@ if __name__ == '__main__':
 
     # determine target class
     try:
-        if args.target == None:
-            args.target = -1
-        else:
-            args.target = classes.index(args.target)
-            print('target class is: %s' % (classes[args.target]))
+        args.target = classes.index(args.target)
+        print('target class is: %s' % (classes[args.target]))
     except ValueError:
         print('error: class %s not found in dataset' % (args.target))
         sys.exit(1)
@@ -165,14 +190,15 @@ if __name__ == '__main__':
     x_train = scaler.transform(x_train)
     x_perturb = scaler.transform(x_perturb)
 
-    # load sample perturbations
-    if args.target != -1:
-        df_pert = utils.load_dataframe('%s/%s.perturbations.samples.txt' % (args.output_dir, classes[args.target]))
-    else:
-        df_pert = pd.DataFrame()
+    # load sample perturbations (genes x samples)
+    p = utils.load_dataframe('%s/%s.perturbations.samples.txt' % (args.output_dir, classes[args.target]))
+    p = p.to_numpy()
 
-    # load sample perturbations like x_perturb
-    p = df_pert.values.T
+    # transpose sample perturbations to (samples x genes)
+    p = p.T
+
+    # compute perturbed samples
+    x_perturbed = np.clip(x_perturb + p, 0, 1)
 
     # plot t-SNE visualization if specified
     if args.tsne:
@@ -182,14 +208,12 @@ if __name__ == '__main__':
         class_indices = list(range(len(classes)))
 
         plot_tsne(
-            x_train,
-            y_train,
+            x_train, y_train,
+            x_perturbed, y_perturb,
+            args.target,
             classes,
             class_indices,
             n_pca=args.tsne_npca,
-            x_pert=np.clip(x_perturb + p, 0, 1),
-            y_pert=y_perturb,
-            target=args.target,
             output_dir=args.output_dir)
 
     # plot heatmaps if specified
@@ -197,20 +221,20 @@ if __name__ == '__main__':
         print('creating heatmaps...')
 
         # compute mean of target class
-        mu_target = x_train[y_train == args.target].mean(axis=0)
+        mu_target = np.mean(x_train[y_train == args.target], axis=0)
 
-        # plot heatmaps for each sample perturbation
-        for i, sample_name in enumerate(df_pert.columns):
+        # plot perturbation heatmaps for each sample
+        for i, sample_name in enumerate(df_perturb.index):
             print('  %s' % (sample_name))
 
             # extract original sample, perturbation, perturbed sample, and target mean
-            df = pd.DataFrame({
+            data = pd.DataFrame({
                 'X': x_perturb[i],
                 'P': p[i],
-                'X + P': np.clip(x_perturb[i] + p[i], 0, 1),
+                'X + P': x_perturbed[i],
                 'mu_T': mu_target
             })
-            df = df.sort_values('P', ascending=False)
+            data = data.sort_values('P', ascending=False)
 
             # plot heatmap for each extracted column
             sample_name = utils.sanitize(sample_name)
@@ -218,7 +242,7 @@ if __name__ == '__main__':
             target_class = classes[args.target]
 
             plot_heatmap(
-                df,
+                data,
                 sample_name,
                 source_class,
                 target_class,

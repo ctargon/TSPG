@@ -15,18 +15,17 @@ import utils
 
 
 
-def get_class_mean(x, y, k):
-    return np.mean(x[np.argmax(y, axis=1) == k], axis=0)
+def perturb_classes(x, y, classes, target):
+    # decode labels from one-hot
+    y = np.argmax(y, axis=1)
 
-
-
-def perturb_mean_diff(x, y, target, classes):
+    # compute mean differences
     perturbations = []
 
     for k in range(len(classes)):
         # get mean of source and target class
-        mu_source = get_class_mean(x, y, k)
-        mu_target = get_class_mean(x, y, target)
+        mu_source = np.mean(x[y == k], axis=0)
+        mu_target = np.mean(x[y == target], axis=0)
 
         # compute difference between source and target mean
         perturbations.append(mu_target - mu_source)
@@ -35,7 +34,7 @@ def perturb_mean_diff(x, y, target, classes):
 
 
 
-def perturb_advgan(x, y, target, classes, output_dir='.'):
+def perturb_samples(x, y, classes, target, output_dir='.'):
     # load pre-trained advgan model
     model = advgan.AdvGAN(
         n_inputs=x.shape[1],
@@ -64,8 +63,9 @@ if __name__ == '__main__':
     parser.add_argument('--gene-sets', help='list of curated gene sets')
     parser.add_argument('--set', help='specific gene set to run')
     parser.add_argument('--target', help='target class', required=True)
-    parser.add_argument('--output-dir', help='Output directory', default='.')
-    parser.add_argument('--baseline', help='create baseline (mean diff) perturbations', action='store_true')
+    parser.add_argument('--perturb-classes', help='compute class perturbations', action='store_true')
+    parser.add_argument('--perturb-samples', help='compute sample perturbations', action='store_true', default=True)
+    parser.add_argument('--output-dir', help='output directory', default='.')
 
     args = parser.parse_args()
 
@@ -131,39 +131,47 @@ if __name__ == '__main__':
     x_train = scaler.transform(x_train)
     x_perturb = scaler.transform(x_perturb)
 
-    # create baseline perturbations if specified
-    if args.baseline:
-        # perturb each class mean to the target class
-        p_means = perturb_mean_diff(
+    # compute class perturbations if specified
+    if args.perturb_classes:
+        # compute class perturbations (samples x classes)
+        p_classes = perturb_classes(
             x_train,
             y_train,
-            args.target,
-            classes)
+            classes,
+            args.target)
+
+        # transpose perturbations to (classes x samples)
+        p_classes = p_classes.T
 
         # save mean peturbations to dataframe
-        p_means = pd.DataFrame(
-            data=p_means.T,
+        p_classes = pd.DataFrame(
+            data=p_classes,
             index=genes,
             columns=classes)
 
         utils.save_dataframe(
-            '%s/%s.perturbations.means.txt' % (args.output_dir, classes[args.target]),
-            p_means)
+            '%s/%s.perturbations.classes.txt' % (args.output_dir, classes[args.target]),
+            p_classes)
 
-    # perturb all samples to target class
-    p_samples = perturb_advgan(
-        x_perturb,
-        y_perturb,
-        args.target,
-        classes,
-        output_dir=args.output_dir)
+    # compute sample perturbations if specified
+    if args.perturb_samples:
+        # compute sample perturbations (samples x genes)
+        p_samples = perturb_samples(
+            x_perturb,
+            y_perturb,
+            classes,
+            args.target,
+            output_dir=args.output_dir)
 
-    # save sample perturbations to dataframe
-    p_samples = pd.DataFrame(
-        data=p_samples.T,
-        index=genes,
-        columns=df_perturb.index)
+        # transpose perturbations to (genes x samples)
+        p_samples = p_samples.T
 
-    utils.save_dataframe(
-        '%s/%s.perturbations.samples.txt' % (args.output_dir, classes[args.target]),
-        p_samples)
+        # save sample perturbations to dataframe
+        p_samples = pd.DataFrame(
+            data=p_samples,
+            index=genes,
+            columns=df_perturb.index)
+
+        utils.save_dataframe(
+            '%s/%s.perturbations.samples.txt' % (args.output_dir, classes[args.target]),
+            p_samples)
