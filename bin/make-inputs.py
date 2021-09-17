@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
         for c in classes:
             indices = (y[0] == c)
-            plt.scatter(x_tsne[indices, 0], x_tsne[indices, 1], label=c, alpha=0.75)
+            plt.scatter(x_tsne[indices, 0], x_tsne[indices, 1], label=c, edgecolors='w')
 
         plt.subplots_adjust(right=0.70)
         plt.legend(loc='upper left', bbox_to_anchor=(1, 1))

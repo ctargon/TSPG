@@ -44,8 +44,8 @@ process make_inputs {
         """
         make-inputs.py \
             --n-samples 1000 \
-            --n-genes   200 \
-            --n-classes 10 \
+            --n-genes   100 \
+            --n-classes 5 \
             --n-sets    5 \
             --tsne      example.tsne.png
         """
