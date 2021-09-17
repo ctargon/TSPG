@@ -114,7 +114,8 @@ PERTURB_LABELS
  * gene set as the input features.
  */
 process train_target {
-    publishDir "${params.output_dir}/${gene_set}"
+    publishDir pattern: "*.h5",  path: "${params.output_dir}/${gene_set}/models"
+    publishDir pattern: "*.log", path: "${params.output_dir}/${gene_set}/logs"
     tag "${gene_set}"
     label "gpu"
 
@@ -126,6 +127,7 @@ process train_target {
 
     output:
         set val(gene_set), file("target_model.h5") into TARGET_MODELS
+        file("train_target.log")
 
     script:
         """
@@ -137,7 +139,8 @@ process train_target {
             --dataset    ${train_data} \
             --labels     ${train_labels} \
             --gene-sets  ${gmt_file} \
-            --set        ${gene_set}
+            --set        ${gene_set} \
+        > train_target.log
         """
 }
 
@@ -160,7 +163,8 @@ TARGET_MODELS
  * input features.
  */
 process train_advgan {
-    publishDir "${params.output_dir}/${gene_set}"
+    publishDir pattern: "*.h5",  path: "${params.output_dir}/${gene_set}/models"
+    publishDir pattern: "*.log", path: "${params.output_dir}/${gene_set}/logs"
     tag "${gene_set}/${target}"
     label "gpu"
 
@@ -173,6 +177,7 @@ process train_advgan {
 
     output:
         set val(gene_set), val(target), file("*.h5") into ADVGAN_MODELS
+        file("*.train_advgan.log")
 
     script:
         """
@@ -186,7 +191,8 @@ process train_advgan {
             --gene-sets  ${gmt_file} \
             --set        ${gene_set} \
             --target     ${target} \
-            --target-cov ${params.target_cov}
+            --target-cov ${params.target_cov} \
+        > ${target}.train_advgan.log
         """
 }
 
@@ -209,7 +215,8 @@ TARGET_MODELS_FOR_PERTURB
  * to the target class.
  */
 process perturb {
-    publishDir "${params.output_dir}/${gene_set}"
+    publishDir pattern: "*.txt", path: "${params.output_dir}/${gene_set}"
+    publishDir pattern: "*.log", path: "${params.output_dir}/${gene_set}/logs"
     tag "${gene_set}/${target}"
     label "gpu"
 
@@ -223,6 +230,7 @@ process perturb {
 
     output:
         set val(gene_set), val(target), file("*.perturbations.samples.txt") into SAMPLE_PERTURBATIONS
+        file("*.perturb.log")
 
     script:
         """
@@ -238,7 +246,8 @@ process perturb {
             --perturb-labels ${perturb_labels} \
             --gene-sets      ${gmt_file} \
             --set            ${gene_set} \
-            --target         ${target}
+            --target         ${target} \
+        > ${target}.perturb.log
         """
 }
 
@@ -249,7 +258,9 @@ process perturb {
  * samples for a given gene set and target class.
  */
 process visualize {
-    publishDir "${params.output_dir}/${gene_set}"
+    publishDir pattern: "*.*.*.png",  path: "${params.output_dir}/${gene_set}/heatmaps"
+    publishDir pattern: "*.tsne.png", path: "${params.output_dir}/${gene_set}/tsne"
+    publishDir pattern: "*.log",      path: "${params.output_dir}/${gene_set}/logs"
     tag "${gene_set}/${target}"
 
     input:
@@ -262,6 +273,7 @@ process visualize {
 
     output:
         file("*.png")
+        file("*.visualize.log")
 
     script:
         """
@@ -280,6 +292,7 @@ process visualize {
             --target         ${target} \
             --tsne \
             --tsne-npca      ${params.tsne_npca} \
-            --heatmap
+            --heatmap \
+        > ${target}.visualize.log
         """
 }
