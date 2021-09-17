@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
+import cycler
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -42,6 +44,8 @@ def plot_tsne(
     plt.axis('off')
 
     # plot original data
+    plt.gca().set_prop_cycle(cycler.cycler(color=cm.get_cmap('tab10').colors))
+
     for k in class_indices:
         indices = (y == k)
         if np.any(indices):
@@ -52,14 +56,15 @@ def plot_tsne(
                 edgecolors='w')
 
     # plot perturbed data
+    plt.gca().set_prop_cycle(cycler.cycler(color=cm.get_cmap('tab10').colors))
+
     for k in class_indices:
         indices = (y_pert == k)
         if np.any(indices):
-            label = '%s (perturbed)' % (classes[k])
             plt.scatter(
                 x_pert[indices, 0],
                 x_pert[indices, 1],
-                label=label,
+                label='%s (perturbed)' % (classes[k]),
                 alpha=0.25,
                 edgecolors='w')
 
@@ -237,7 +242,7 @@ if __name__ == '__main__':
                 'P': p[i],
                 'X + P': x_perturbed[i],
                 'mu_T': mu_target
-            })
+            }, index=genes)
             data = data.sort_values('P', ascending=False)
 
             # plot heatmap for each extracted column
