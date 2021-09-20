@@ -51,7 +51,7 @@ nextflow run ctargon/tspg \
     --perturb_data "example.perturb.emx.txt" \
     --perturb_labels "example.perturb.labels.txt" \
     --gmt_file "example.genesets.txt" \
-    --target_class "class-00,class-01"
+    --target_class "class-00,class-01,class-02"
 ```
 
 The Nextflow pipeline makes it easy to run TSPG multiple times on the same data with different target classes. However, the pipeline does not currently support input files in numpy format.
@@ -79,7 +79,7 @@ bin/convert.py GEM.txt GEM.npy --transpose
 
 This example will create three files: `GEM.npy`, `GEM.rownames.txt`, and `GEM.colnames.txt`. The latter two files contain the row names and column names, respectively. Make sure that the rows are samples and the columns are genes!
 
-The __label file__ should contain a label for each sample, corresponding to something such as a condition or phenotype state for the sample. This file should contain two columns, the first being the sample names and the second being the labels. Values in each row should be separated by tabs.
+The __labels file__ should contain a label for each sample, corresponding to something such as a condition or phenotype state for the sample. This file should contain two columns, the first being the sample names and the second being the labels. Values in each row should be separated by tabs.
 ```
 Sample1	Label1
 Sample2	Label2
@@ -92,6 +92,8 @@ The __gene set list__ should contain the name and genes for a gene set on each l
 GeneSet1	Gene1	Gene2	Gene3
 GeneSet2	Gene2	Gene4	Gene5	Gene6
 ```
+
+It is recommended that you use the `split-train-perturb.py` script to split your GEM and labels file into train/perturb sets (similar to train/test sets in machine learning) in order to verify that TSPG can effectively perturb data that it did not see during training.
 
 ### Phase 1: Train Target Model
 
