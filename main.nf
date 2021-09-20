@@ -4,8 +4,84 @@ nextflow.enable.dsl=2
 
 
 
+workflow {
+    // create synthetic data if specified
+    if ( params.make_inputs == true ) {
+        make_inputs()
+        train_data     = make_inputs.out.train_data
+        train_labels   = make_inputs.out.train_labels
+        perturb_data   = make_inputs.out.perturb_data
+        perturb_labels = make_inputs.out.perturb_labels
+        gmt_file       = make_inputs.out.gmt_file
+    }
+
+    // otherwise load input files
+    else {
+        train_data     = Channel.fromPath("${params.input_dir}/${params.train_data}")
+        train_labels   = Channel.fromPath("${params.input_dir}/${params.train_labels}")
+        perturb_data   = Channel.fromPath("${params.input_dir}/${params.perturb_data}")
+        perturb_labels = Channel.fromPath("${params.input_dir}/${params.perturb_labels}")
+        gmt_file       = Channel.fromPath("${params.input_dir}/${params.gmt_file}")
+    }
+
+    // extract gene set names from GMT file
+    gene_sets = gmt_file.flatMap {
+        it.readLines().collect { line -> line.tokenize("\t")[0] }
+    }
+
+    // train target model
+    train_target(
+        train_data,
+        train_labels,
+        gmt_file,
+        gene_sets)
+
+    target_models = train_target.out.target_models
+
+    // parse target classes from params
+    targets = Channel.fromList( params.targets.tokenize(',') )
+
+    // train advgan model
+    train_advgan(
+        train_data,
+        train_labels,
+        gmt_file,
+        target_models,
+        targets)
+
+    advgan_models = train_advgan.out.advgan_models
+
+    // cross each target model with the corresponding
+    // generator models for the perturb process
+    models = target_models
+        .cross(advgan_models)
+        .map { it -> [it[0][0], it[0][1], it[1][1], it[1][2]] }
+
+    // generate sample perturbations
+    perturb(
+        train_data,
+        train_labels,
+        perturb_data,
+        perturb_labels,
+        gmt_file,
+        models)
+
+    sample_perturbations = perturb.out.sample_perturbations
+
+    // visualize t-sne and sample heatmaps
+    visualize(
+        train_data,
+        train_labels,
+        perturb_data,
+        perturb_labels,
+        gmt_file,
+        sample_perturbations)
+}
+
+
+
 /**
- * The make_input process generates synthetic input data
+ * The make_inputs process generates synthetic input data
  * for an example run.
  */
 process make_inputs {
@@ -196,80 +272,4 @@ process visualize {
             --heatmap \
         > ${target}.visualize.log
         """
-}
-
-
-
-workflow {
-    // create synthetic data if specified
-    if ( params.make_inputs == true ) {
-        make_inputs()
-        train_data     = make_inputs.out.train_data
-        train_labels   = make_inputs.out.train_labels
-        perturb_data   = make_inputs.out.perturb_data
-        perturb_labels = make_inputs.out.perturb_labels
-        gmt_file       = make_inputs.out.gmt_file
-    }
-
-    // otherwise load input files
-    else {
-        train_data     = Channel.fromPath("${params.input_dir}/${params.train_data}")
-        train_labels   = Channel.fromPath("${params.input_dir}/${params.train_labels}")
-        perturb_data   = Channel.fromPath("${params.input_dir}/${params.perturb_data}")
-        perturb_labels = Channel.fromPath("${params.input_dir}/${params.perturb_labels}")
-        gmt_file       = Channel.fromPath("${params.input_dir}/${params.gmt_file}")
-    }
-
-    // extract gene set names from GMT file
-    gene_sets = gmt_file.flatMap {
-        it.readLines().collect { line -> line.tokenize("\t")[0] }
-    }
-
-    // train target model
-    train_target(
-        train_data,
-        train_labels,
-        gmt_file,
-        gene_sets)
-
-    target_models = train_target.out.target_models
-
-    // parse target classes from params
-    targets = Channel.fromList( params.targets.tokenize(',') )
-
-    // train advgan model
-    train_advgan(
-        train_data,
-        train_labels,
-        gmt_file,
-        target_models,
-        targets)
-
-    advgan_models = train_advgan.out.advgan_models
-
-    // cross each target model with the corresponding
-    // generator models for the perturb process
-    models = target_models
-        .cross(advgan_models)
-        .map { it -> [it[0][0], it[0][1], it[1][1], it[1][2]] }
-
-    // generate sample perturbations
-    perturb(
-        train_data,
-        train_labels,
-        perturb_data,
-        perturb_labels,
-        gmt_file,
-        models)
-
-    sample_perturbations = perturb.out.sample_perturbations
-
-    // visualize t-sne and sample heatmaps
-    visualize(
-        train_data,
-        train_labels,
-        perturb_data,
-        perturb_labels,
-        gmt_file,
-        sample_perturbations)
 }
