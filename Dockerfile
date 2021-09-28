@@ -1,5 +1,5 @@
 FROM tensorflow/tensorflow:1.15.4-gpu-py3
-MAINTAINER Ben Shealy <btsheal@g.clemson.edu>
+MAINTAINER Ben Shealy <btsheal@clemson.edu>
 
 # install package dependencies
 ENV DEBIAN_FRONTEND=noninteractive 

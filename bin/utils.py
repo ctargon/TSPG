@@ -43,7 +43,7 @@ def save_dataframe(filename, df):
         df.to_csv(filename, sep='\t', na_rep='NA', float_format='%.8f')
     elif ext == 'npy':
         # save data matrix to binary file
-        np.save(filename, np.array(df.to_numpy(), dtype=np.float32, order='F'))
+        np.save(filename, df.to_numpy(dtype=np.float32))
 
         # save row names and column names to text files
         np.savetxt('%s.rownames.txt' % basename, df.index, fmt='%s')
