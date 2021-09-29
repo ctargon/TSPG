@@ -8,19 +8,19 @@ workflow {
     // create synthetic data if specified
     if ( params.make_inputs == true ) {
         make_inputs()
-        train_data     = make_inputs.out.train_data
-        train_labels   = make_inputs.out.train_labels
-        perturb_data   = make_inputs.out.perturb_data
-        perturb_labels = make_inputs.out.perturb_labels
+        train_data     = make_inputs.out.train_data.collect()
+        train_labels   = make_inputs.out.train_labels.collect()
+        perturb_data   = make_inputs.out.perturb_data.collect()
+        perturb_labels = make_inputs.out.perturb_labels.collect()
         gmt_file       = make_inputs.out.gmt_file
     }
 
     // otherwise load input files
     else {
-        train_data     = Channel.fromPath("${params.input_dir}/${params.train_data}")
-        train_labels   = Channel.fromPath("${params.input_dir}/${params.train_labels}")
-        perturb_data   = Channel.fromPath("${params.input_dir}/${params.perturb_data}")
-        perturb_labels = Channel.fromPath("${params.input_dir}/${params.perturb_labels}")
+        train_data     = Channel.fromPath("${params.input_dir}/${params.train_data}").collect()
+        train_labels   = Channel.fromPath("${params.input_dir}/${params.train_labels}").collect()
+        perturb_data   = Channel.fromPath("${params.input_dir}/${params.perturb_data}").collect()
+        perturb_labels = Channel.fromPath("${params.input_dir}/${params.perturb_labels}").collect()
         gmt_file       = Channel.fromPath("${params.input_dir}/${params.gmt_file}")
     }
 
@@ -28,6 +28,8 @@ workflow {
     gene_sets = gmt_file.flatMap {
         it.readLines().collect { line -> line.tokenize("\t")[0] }
     }
+
+    gmt_file = gmt_file.collect()
 
     // train target model
     train_target(
@@ -157,9 +159,9 @@ process train_advgan {
     label "gpu"
 
     input:
-        each path(train_data)
-        each path(train_labels)
-        each path(gmt_file)
+        path(train_data)
+        path(train_labels)
+        path(gmt_file)
         tuple val(gene_set), path(target_model)
         each target
 
@@ -198,11 +200,11 @@ process perturb {
     label "gpu"
 
     input:
-        each path(train_data)
-        each path(train_labels)
-        each path(perturb_data)
-        each path(perturb_labels)
-        each path(gmt_file)
+        path(train_data)
+        path(train_labels)
+        path(perturb_data)
+        path(perturb_labels)
+        path(gmt_file)
         tuple val(gene_set), path(target_model), val(target), path(advgan_models)
 
     output:
@@ -241,11 +243,11 @@ process visualize {
     tag "${gene_set}/${target}"
 
     input:
-        each path(train_data)
-        each path(train_labels)
-        each path(perturb_data)
-        each path(perturb_labels)
-        each path(gmt_file)
+        path(train_data)
+        path(train_labels)
+        path(perturb_data)
+        path(perturb_labels)
+        path(gmt_file)
         tuple val(gene_set), val(target), path(sample_perturbations)
 
     output:
