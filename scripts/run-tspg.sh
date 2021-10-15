@@ -7,7 +7,7 @@ set -e
 export TF_CPP_MIN_LOG_LEVEL="3"
 
 # This should be the directory where you cloned the TSPG repository
-TSPG_DIR="${HOME}/workspace/tspg"
+TSPG_DIR="${HOME}/TSPG"
 
 # Change these variables to match your specific input files, gene set, and target class
 INPUT_DIR="input"
