@@ -16,8 +16,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # load input dataset
-    x = pd.read_csv(args.dataset, index_col=0, sep='\t')
-    y = pd.read_csv(args.labels, index_col=0, sep='\t', header=None)
+    x = pd.read_csv(args.dataset, sep='\t', index_col=0)
+    y = pd.read_csv(args.labels, sep='\t', index_col=0, header=None)
 
     # get filename prefix
     prefix = args.dataset.split('.')[0]

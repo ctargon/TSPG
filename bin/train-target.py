@@ -39,6 +39,11 @@ if __name__ == '__main__':
     # impute missing values
     df.fillna(value=df.min().min(), inplace=True)
 
+    # sort labels to match data if needed
+    if (df.index != labels.index).any():
+        print('warning: data and labels are not ordered the same, re-ordering labels')
+        labels = labels.loc[df.index]
+
     # load gene sets file if it was provided
     if args.gene_sets != None:
         print('loading gene sets...')

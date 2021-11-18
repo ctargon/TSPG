@@ -131,7 +131,8 @@ class AdvGAN(keras.Model):
             'loss_adv',
             'loss_gan',
             'loss_norm',
-            'loss_td'
+            'loss_td',
+            'loss_g'
         ]
 
         self.trackers = {name: keras.metrics.Mean(name=name) for name in losses}
@@ -222,7 +223,8 @@ class AdvGAN(keras.Model):
             'loss_adv': l_adv,
             'loss_gan': l_gan,
             'loss_norm': l_norm,
-            'loss_td': l_td
+            'loss_td': l_td,
+            'loss_g': g_loss
         }
 
         for name, value in metrics.items():

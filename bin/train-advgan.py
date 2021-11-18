@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import sklearn.model_selection
@@ -43,6 +44,11 @@ if __name__ == '__main__':
 
     # impute missing values
     df.fillna(value=df.min().min(), inplace=True)
+
+    # sort labels to match data if needed
+    if (df.index != labels.index).any():
+        print('warning: data and labels are not ordered the same, re-ordering labels')
+        labels = labels.loc[df.index]
 
     # determine target class
     try:
@@ -115,11 +121,25 @@ if __name__ == '__main__':
     model.compile()
 
     # train model
-    model.fit(
+    history = model.fit(
         x_train,
         y_train,
         epochs=args.epochs,
         batch_size=args.batch_size)
+
+    # plot the training history
+    for label, y in history.history.items():
+        y_min = min(y_i for y_i in y if y_i > 0)
+        y = np.maximum(y, y_min)
+        plt.plot(y, label=label)
+
+    plt.yscale('log')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('%s/%d_history.png' % (args.output_dir, args.target))
+    plt.close()
 
     # evaluate model
     y_real = model.predict_target(x_test)

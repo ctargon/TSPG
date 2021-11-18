@@ -18,7 +18,7 @@ def load_dataframe(filename):
 
     if ext == 'txt':
         # load dataframe from plaintext file
-        return pd.read_csv(filename, index_col=0, sep='\t')
+        return pd.read_csv(filename, sep='\t', index_col=0)
     elif ext == 'npy':
         # load data matrix from binary file
         X = np.load(filename)
@@ -56,15 +56,18 @@ def save_dataframe(filename, df):
 
 def load_labels(filename, classes=None):
     # load labels file
-    labels = pd.read_csv(filename, sep='\t', header=None, index_col=0)
-    labels = labels[1].to_numpy()
+    df = pd.read_csv(filename, sep='\t', header=None)
+    samples, labels = df[0], df[1]
 
     # infer list of classes if needed
     if classes == None:
         classes = sorted(set(labels))
 
     # convert categorical labels to numerical labels
-    labels = np.array([classes.index(l) for l in labels])
+    labels = pd.Series(
+        index=samples,
+        data=[classes.index(l) for l in labels]
+    )
 
     return labels, classes
 

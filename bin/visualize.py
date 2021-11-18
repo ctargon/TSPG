@@ -158,6 +158,15 @@ if __name__ == '__main__':
     df_train.fillna(value=min_value, inplace=True)
     df_perturb.fillna(value=min_value, inplace=True)
 
+    # sort labels to match data if needed
+    if (df_train.index != y_train.index).any():
+        print('warning: train data and labels are not ordered the same, re-ordering labels')
+        y_train = y_train.loc[df_train.index]
+
+    if (df_perturb.index != y_perturb.index).any():
+        print('warning: perturb data and labels are not ordered the same, re-ordering labels')
+        y_perturb = y_perturb.loc[df_perturb.index]
+
     # sanitize class names
     classes = [utils.sanitize(c) for c in classes]
 
