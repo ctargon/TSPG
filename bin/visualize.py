@@ -6,9 +6,11 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import random
 import sklearn.decomposition
 import sklearn.manifold
 import sklearn.preprocessing
+import sys
 
 import utils
 
@@ -135,6 +137,7 @@ if __name__ == '__main__':
     parser.add_argument('--tsne', help='plot t-SNE of samples', action='store_true')
     parser.add_argument("--tsne-npca", help="number of principal components to take before t-SNE", type=int)
     parser.add_argument('--heatmap', help='plot heatmaps of sample perturbations', action='store_true')
+    parser.add_argument('--heatmap-nsamples', help='plot a random sampling of heatmaps', type=int)
     parser.add_argument('--target', help='target class', required=True)
     parser.add_argument('--output-dir', help='output directory', default='.')
 
@@ -241,8 +244,14 @@ if __name__ == '__main__':
         # compute mean of target class
         mu_target = np.mean(x_train[y_train == args.target], axis=0)
 
+        # select random subset of heatmaps if specified
+        if args.heatmap_nsamples != None:
+            samples = random.sample(list(df_perturb.index), k=args.heatmap_nsamples)
+        else:
+            samples = df_perturb.index
+
         # plot perturbation heatmaps for each sample
-        for i, sample_name in enumerate(df_perturb.index):
+        for i, sample_name in enumerate(samples):
             print('  %s' % (sample_name))
 
             # extract original sample, perturbation, perturbed sample, and target mean
